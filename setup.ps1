@@ -35,6 +35,34 @@ foreach ($r in $Routes) {
 Write-Host ("  NEVER LINKED:    {0}" -f ($NeverLinked -join ', ')) -ForegroundColor DarkGray
 Write-Host ""
 
+# The shared plans repository holds every implementation plan, review, and
+# walkthrough. It is a separate clone, not something this script creates: a
+# directory created here would have no remote, so nothing would ever be pushed
+# from it and it would silently diverge. Warn only.
+#
+# This warning matters. When the clone is missing, agents fall back to each
+# repository's gitignored .plans/ and keep working, so nothing fails loudly --
+# this message and the agent's own fallback announcement are the only two places
+# a missing clone surfaces.
+$plansRoot = $env:AGENT_PLANS_ROOT
+if (-not $plansRoot) { $plansRoot = 'C:\hmp\plans' }
+$plansOk = $false
+foreach ($candidate in @($plansRoot, (Join-Path (Split-Path -Parent $repoRoot) 'plans'))) {
+    if ($candidate -and (Test-Path (Join-Path $candidate '.git'))) {
+        Write-Host ("Plans repository: {0}" -f $candidate) -ForegroundColor DarkGray
+        $plansOk = $true
+        break
+    }
+}
+if (-not $plansOk) {
+    Write-Host "WARNING: the shared plans repository was not found." -ForegroundColor Yellow
+    Write-Host "  Looked for AGENT_PLANS_ROOT, C:\hmp\plans, and a 'plans' directory beside this one." -ForegroundColor Yellow
+    Write-Host "  Without it, every agent silently falls back to each repository's .plans/," -ForegroundColor Yellow
+    Write-Host "  which is gitignored and local to this machine. Clone it with:" -ForegroundColor Yellow
+    Write-Host "    git clone https://github.com/hyvanmielenpelit/plans.git C:\hmp\plans" -ForegroundColor Yellow
+}
+Write-Host ""
+
 $actions = @()
 
 function Log-Action {

@@ -101,7 +101,7 @@ promising something no harness can do.
 | Mechanism | What it is | Bounded by |
 |-----------|-----------|-----------|
 | **Within-session subagents** | The orchestrator spawns helpers inside one application | That application's own model roster. **No application can spawn another vendor's models.** |
-| **Cross-application phase handoff** | Plan in one application, implement in the other | **A person opening the other application.** `.plans/` is the entire interface. |
+| **Cross-application phase handoff** | Plan in one application, implement in the other | **A person opening the other application.** The plan document is the entire interface. |
 
 The **Subagent Use** section governs the first. The second is recorded in the plan's
 **Execution Target** line (see `agent-implementation-planning`) and executed by a human.
@@ -137,12 +137,28 @@ plan steps, never inside one.
 The specific chains are project-specific: consult the repository's own planning skill for
 its Build Impact section.
 
-### `.plans/` directory isolation (STRICT)
+### Plans isolation (STRICT)
 
-**Subagents must NOT read files in `.plans/`** unless the orchestrator provides a specific
-file path and instructs them to read it. Pass the relevant plan context **in the
-subagent's prompt** instead. Old and superseded plans corrupt a subagent's understanding
-of its task.
+**Subagents must NOT read files in the plans repository, or in any `.plans/` fallback**,
+unless the orchestrator provides a specific file path and instructs them to read it -- and
+never a path outside the current task's directory. Pass the relevant plan context **in the
+subagent's prompt** instead. Old and superseded plans corrupt a subagent's understanding of
+its task, and the shared store now puts other repositories' plans one directory away.
+
+### Subagents never commit (STRICT)
+
+> [!CAUTION]
+> **A subagent does not run `git commit` or `git push`. Not in a project repository, not
+> in the plans repository, not anywhere.**
+
+State it flatly rather than as a delegation detail: a subagent handed a file-writing task
+has no way to know whether its orchestrator has already committed the round, or is about
+to. The orchestrator owns the round and makes its single commit after every subagent has
+returned.
+
+The wider rule -- that the `plans` repository is the **only** repository any agent may
+commit or push to, and that committing is forbidden everywhere else -- is in
+`agent-implementation-planning`.
 
 ### Communication overhead
 

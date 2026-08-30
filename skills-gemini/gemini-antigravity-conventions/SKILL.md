@@ -2,7 +2,8 @@
 name: gemini-antigravity-conventions
 description: >-
   Antigravity Standalone App specifics. Covers delivering plans and reports to the artifact
-  directory while copying them to .plans/, implementing a plan authored in another
+  directory while copying them to the shared plans repository, adding that directory as a
+  project folder, implementing a plan authored in another
   application, resolving an abstract model tier against the models this session offers, the
   boundary that this app can spawn only its own vendor's models, skill discovery and the
   skills.json fallback, why .agents/ is canonical and .claude/ is not, and checking whether
@@ -19,18 +20,35 @@ Antigravity Standalone App only. The Claude Code equivalents are in `claude-plan
 ## Delivering Plans and Reports
 
 The artifact guidelines say to save extensive reports and analysis summaries to the
-artifact directory (`<appDataDir>/brain/<conversation-id>/`). The `.plans/` convention says
-the canonical document lives in the repository. **Both receive the file.**
+artifact directory (`<appDataDir>/brain/<conversation-id>/`). The convention says the
+canonical document lives in the shared `plans` repository. **Both receive the file.**
 
 1. **Create the artifact** in the artifact directory, so the UI can present it.
-2. **Copy it** to `.plans/YYYY-MM-DD/task_name/<document_name>_v<N>.md`.
-3. **Present the artifact and wait for approval** before editing any project file.
+2. **Copy it** to
+   `<plans-root>/<organization>/<repository>/YYYY-MM-DD/task_name/<document_name>_v<N>.md`.
+3. **Commit the round** in the plans repository, per `agent-implementation-planning`.
+4. **Present the artifact and wait for approval** before editing any project file.
 
-`.plans/` is canonical. Other agents -- in other sessions and in the other application --
-read revisions from there and never look inside the artifact directory. The copy also
-means the document survives a rejection or a lost session.
+The plans repository is canonical. Other agents -- in other sessions and in the other
+application, on other machines -- read revisions from there and never look inside the
+artifact directory. The copy also means the document survives a rejection or a lost
+session.
 
-Naming, `_v<N>` versioning, follow-up rounds, and the plan template are in
+### Reaching the plans repository
+
+**Add `C:\hmp\plans` to every project as an additional project folder.** If it was not
+added, this application asks for access to the directory the first time it writes there;
+granting that prompt is the fix.
+
+> [!CAUTION]
+> The grant is for the **plans directory itself**. Never open or grant access to its
+> parent -- that holds every repository on the machine plus unrelated data, and an agent
+> must not be handed it. A **denied** prompt is not a reason to ask again: it is a
+> fallback case. Write to the working repository's `.plans/`, say so in chat, and record
+> the intended scope in the document.
+
+Scope directories, naming, `_v<N>` versioning and harmonization, follow-up rounds, the
+commit protocol, the fallback, and the plan template are all in
 `agent-implementation-planning`.
 
 ---
@@ -40,8 +58,10 @@ Naming, `_v<N>` versioning, follow-up rounds, and the plan template are in
 This is the common case: plans are frequently written in the other application and
 implemented here.
 
-- Read the **latest `_v<N>`** for the specific task you are continuing. Do not browse
-  other task directories, and do not read superseded versions unless asked.
+- Read the **latest `_v<N>`** for the specific task you are continuing -- in the plans
+  repository first, then the working repository's `.plans/`. Do not browse other task
+  directories, do not read another repository's scope, and do not read superseded versions
+  unless asked.
 - **If the plan is ambiguous, ask rather than improvise.** The planning session's context
   is not recoverable from here, and its author is in a different application. A guess that
   looks reasonable is far more expensive than a question.
@@ -75,7 +95,7 @@ implemented here.
 
 A plan whose **Execution Target** names Claude Code is handed over by **a person opening
 that application** -- not by spawning a subagent, which is impossible. The plan document in
-`.plans/` is the entire interface.
+the plan document is the entire interface.
 
 If asked to hand work to the other application, say plainly that this one cannot, and point
 at the Execution Target line as the way to record the intent.
@@ -130,7 +150,9 @@ In a project repository:
 ## Scratch Files
 
 Save temporary files and scratch scripts to `<appDataDir>\brain\<conversation-id>\scratch\`.
-**Never** write them anywhere inside a repository; the sole in-tree exception is `.plans/`.
+**Never** write them anywhere inside a repository. Planning documents go to the shared
+`plans` repository; the one in-tree exception left is `.plans/`, and only as the fallback
+when that repository cannot be reached.
 
 Native file tools are `write_to_file`, `replace_file_content`, and `view_file`. Prefer them
 over shell redirection, which produces the wrong encoding and line endings. Full Windows and

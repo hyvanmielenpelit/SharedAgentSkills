@@ -8,8 +8,8 @@ loads into every context window.
 - **Never write temporary files, scratch scripts, or intermediate data into a repository**
   -- not the root, not a scratch directory inside it, not anywhere in the source tree.
 - Use the agent's dedicated scratch directory. **Your harness rules name the exact path.**
-- The sole in-tree exception is `.plans/`, which is gitignored and is the intended home
-  for AI-produced planning documents.
+- The sole in-tree exception is `.plans/`, the gitignored **fallback** for plans when the
+  `plans` repository is unreachable.
 - If a build genuinely requires temporary files inside the project, put them in a
   dedicated `tmp/` or `build/` directory that is gitignored, and clean up.
 
@@ -17,6 +17,17 @@ loads into every context window.
 
 - **Do NOT commit or push unless the user explicitly asks.** Leave modified and new files
   staged or untracked as appropriate, and present the commands in the handoff.
+- **The `plans` repository is the ONLY one you may commit or push to.** Everywhere else --
+  including a `.plans/` fallback -- it is forbidden unless the user asks.
+
+## Implementation Plans
+
+- Plans, reviews, and walkthroughs go to the shared `plans` repository:
+  `<root>/<organization>/<repository>/YYYY-MM-DD/task_name/`. Resolve `<root>` as
+  `AGENT_PLANS_ROOT`, else `C:\hmp\plans`, else a `plans` directory beside your
+  repository; never create it. Details: `agent-implementation-planning`.
+- **If none resolves**, write to the repository's gitignored `.plans/YYYY-MM-DD/task_name/`
+  and **say so in chat**. Never silently.
 
 ## Environment Constraints
 

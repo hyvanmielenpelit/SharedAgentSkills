@@ -29,7 +29,7 @@ it is a competing procedure for the same task, not just a different tool name.
 
 | # | Content | Destination | Why |
 |---|---------|-------------|-----|
-| C1 | Plan mode: `~/.claude/plans/<slug>.md` is the only editable file; copy to `.plans/` **before** `ExitPlanMode`; the "why the copy is allowed" rationale; in-place editing vs `_v<N>` | `claude-plan-mode` | ~45 lines, and a competing procedure for plan delivery. Was duplicated in both project repositories' `CLAUDE.md` |
+| C1 | Plan mode: `~/.claude/plans/<slug>.md` is the only editable file; copy to the plans repository **before** `ExitPlanMode`; the "why the copy is allowed" rationale; reaching the root via `additionalDirectories`; in-place editing vs `_v<N>` | `claude-plan-mode` | ~45 lines, and a competing procedure for plan delivery. Was duplicated in both project repositories' `CLAUDE.md` |
 | C2 | Plan mode prescribes `Explore` agents for research and a `Plan` agent for design; both read-only, need no plan approval | `claude-plan-mode` | Meaningless without plan mode |
 | C3 | Format scaling under plan mode — "concise" means no verbosity *within* the mandatory format | `claude-plan-mode` | Same |
 | C4 | Approval is requested with the `ExitPlanMode` tool, not a chat question | `claude-plan-mode` | The neutral form ("use the harness's approval mechanism") stays in `agent-implementation-planning` |
@@ -46,7 +46,7 @@ it is a competing procedure for the same task, not just a different tool name.
 
 | # | Content | Destination | Why |
 |---|---------|-------------|-----|
-| G1 | Plan and report artifacts go to `<appDataDir>/brain/<conversation-id>/` **and** are copied to `.plans/`; present the artifact and wait for approval | `gemini-antigravity-conventions` | Competing procedure for plan delivery — the mirror of C1 |
+| G1 | Plan and report artifacts go to `<appDataDir>/brain/<conversation-id>/` **and** are copied to the plans repository; adding it as a project folder; present the artifact and wait for approval | `gemini-antigravity-conventions` | Competing procedure for plan delivery — the mirror of C1 |
 | G2 | Scratch directory `<appDataDir>\brain\<conversation-id>\scratch\` | `rules/GEMINI.md`, and **inlined** in `agent-powershell-guidelines` section 10 | Always-relevant path. **Was leaking into `rules/AGENTS.md`**, which is supposed to be tool-neutral |
 | G3 | `~/.gemini/config/skills/` mounts skills at Global Discovery Priority 3 | `gemini-antigravity-conventions` + `docs/` | Discovery mechanism |
 | G4 | `skills.json` fallback, and project-level `.agents/skills.json` | `gemini-antigravity-conventions` | Gemini-only mechanism |
@@ -61,9 +61,9 @@ it is a competing procedure for the same task, not just a different tool name.
 
 | Content | Why it stays shared |
 |---------|--------------------|
-| `.plans/` as source of truth; copy the plan there before requesting approval | True under every harness; only the *private* location differs |
+| The plans repository as source of truth; copy the plan there before requesting approval; `.plans/` only as fallback | True under every harness; only the *private* location differs |
 | `_v<N>` versioning, `_A`/`_B` rounds, `task.md`, `walkthrough.md` | Filesystem conventions |
-| Five-phase lifecycle, plan template, `.plans/` research isolation | Method, not mechanism |
+| Five-phase lifecycle, plan template, plans research isolation, version harmonization, the commit protocol | Method, not mechanism |
 | Tier **names** and selection criteria | Roles, not model names — each harness skill supplies the resolution rule |
 | File-level exclusivity, protecting uncommitted changes, build-boundary sequencing | Coordination rules |
 | Everything in `agent-powershell-guidelines` sections 1-9 | Windows and PowerShell 5.1 behaviour, identical under both |

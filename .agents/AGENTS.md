@@ -93,9 +93,28 @@ asymmetry is the most common source of "why is Gemini ignoring my rule".
    what both harnesses index to decide whether to load the skill.
 3. Prefix by scope: `agent-` for shared, `claude-` / `gemini-` for
    harness-specific. Un-prefixed generic names are reserved for shared skills.
-   Project repositories use `server_` (MobileGnollHackLogger) and `client_`
-   (GnollHack).
+   Project repositories use the prefixes below.
 4. Run the validator, then `.\setup.ps1` (a new directory needs a new junction).
+
+## Project Repository Skill Prefixes
+
+| Repository | Prefix | Must never use |
+|------------|--------|----------------|
+| `MobileGnollHackLogger` | `server_` | **`client_`** |
+| `GnollHack` | `client_` | **`server_`** |
+
+The two prefixes name **the tiers of one system**, not two unrelated projects.
+`GnollHack` is the real client of the `MobileGnollHackLogger` server, so `client_`
+is reserved for it and means the game client. A `client_` skill inside
+`MobileGnollHackLogger` would read as "the GnollHack client" to anyone who knows
+the convention, and as "browser-side code" to anyone who does not -- and skill
+names are what a triggering agent matches on, so the ambiguity is not cosmetic.
+
+Use `frontend_` for browser-side concerns in `MobileGnollHackLogger`; that is what
+`frontend_packages_management` is, renamed from `client_packages_management`.
+
+Nothing enforces this automatically. Both repositories restate it in their own
+`.agents/AGENTS.md`, which is what an agent adding a skill there actually reads.
 
 ## Project Repositories
 

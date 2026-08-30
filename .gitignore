@@ -1,7 +1,10 @@
 # Tracked and intentional, despite looking like agent config:
 #   .agents/  .claude/   repository-local rules; NEVER linked by setup.ps1
 #   docs/                human-facing guidance
-# Only .plans/ is ignored: it holds AI-produced planning documents.
+# Only .plans/ is ignored. It is the FALLBACK location for planning documents when
+# the shared hyvanmielenpelit/plans repository cannot be reached -- not their home.
+# Ignoring it matters more, not less: a fallback document is one that has not
+# reached anyone yet, and committing it here would be the wrong fix.
 
 .vs/
 .idea/

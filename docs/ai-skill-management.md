@@ -128,7 +128,7 @@ supervision" — self-corrects when the roster changes.
 ## How the Work Actually Flows
 
 Plans are authored on the **deep** tier in one application and frequently
-implemented on the **standard** tier in the other, with `.plans/` as the
+implemented on the **standard** tier in the other, with the shared plans repository as the
 interchange format.
 
 The two applications **cannot reach each other's models**. Claude Code spawns only

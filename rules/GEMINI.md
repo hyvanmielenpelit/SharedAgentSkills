@@ -8,18 +8,19 @@ before this section and is not repeated here.
 - **Scratch files and one-off scripts**: `<appDataDir>\brain\<conversation-id>\scratch\`.
 - **Plans, reports, and analyses**: create the artifact in
   `<appDataDir>\brain\<conversation-id>\` so the UI can present it, **and copy it** to
-  `.plans/YYYY-MM-DD/task_name/` in the repository, which is the canonical location. See
+  the shared `plans` repository, which is the canonical location. **Add `C:\hmp\plans` to
+  every project as a project folder** -- never grant access to its parent. See
   `gemini-antigravity-conventions` for the full flow.
 
 The baseline rule still binds: never write temporary files anywhere inside a repository,
-except `.plans/`.
+except `.plans/`, the fallback when the `plans` repository is unreachable.
 
 ## Globally Installed Skills
 
 Shared, both harnesses:
 
-- `agent-implementation-planning` -- the planning lifecycle, plan template, `.plans/`
-  naming and versioning, follow-up rounds, research isolation.
+- `agent-implementation-planning` -- the planning lifecycle, plan template, the plans
+  repository layout and versioning, the commit protocol, follow-up rounds, isolation.
 - `agent-subagent-guidelines` -- the mandatory Subagent Use section, model tiers and how
   to resolve them, file-level exclusivity, protecting uncommitted changes.
 - `agent-powershell-guidelines` -- Windows and PowerShell 5.1 syntax, encoding, line

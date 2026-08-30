@@ -121,6 +121,17 @@ def check_no_model_names(path: Path, allowance: int) -> bool:
     return True
 
 
+def normalized_size(path: Path) -> int:
+    """Byte length with line endings normalized to LF.
+
+    The cap below measures content, not representation. These repositories use
+    CRLF working trees, which would otherwise charge one byte per line for a
+    convention that carries no meaning -- and would silently tighten the cap
+    again if the convention ever changed."""
+    text = path.read_text(encoding="utf-8")
+    return len(text.replace("\r\n", "\n").encode("utf-8"))
+
+
 def validate_rules_size(repo_root: Path) -> bool:
     """Rules files load into every context window in every project, so they are
     capped. Anything longer belongs in a triggered skill."""
@@ -129,15 +140,42 @@ def validate_rules_size(repo_root: Path) -> bool:
         path = repo_root / "rules" / name
         if not path.exists():
             continue
-        size = path.stat().st_size
+        size = normalized_size(path)
         if size > RULES_MAX_BYTES:
             print(
-                f"FAIL [Rules Size]: {path} is {size} bytes (cap {RULES_MAX_BYTES}). "
-                f"Move the excess into a triggered skill.",
+                f"FAIL [Rules Size]: {path} is {size} bytes LF-normalized "
+                f"(cap {RULES_MAX_BYTES}). Move the excess into a triggered skill.",
                 file=sys.stderr,
             )
             success = False
     return success
+
+
+FALLBACK_TOKEN = ".plans/"
+PRIMARY_TOKENS = ("AGENT_PLANS_ROOT", "plans repository")
+
+
+def check_fallback_has_primary(path: Path) -> bool:
+    """`.plans/` is the FALLBACK location for planning documents, never their
+    home -- that is the shared `plans` repository.
+
+    A file may name the fallback, but never on its own. Describing `.plans/`
+    without naming the primary is exactly what a silent regression to the old
+    per-repository arrangement looks like, and it reads as correct."""
+    # Backticks are markdown, not meaning: `plans` repository must match too.
+    text = path.read_text(encoding="utf-8").replace("`", "")
+    if FALLBACK_TOKEN not in text:
+        return True
+    if any(token in text for token in PRIMARY_TOKENS):
+        return True
+    print(
+        f"FAIL [Plans Location]: {path} mentions '{FALLBACK_TOKEN}' without naming the "
+        f"shared plans repository (expected one of: {', '.join(PRIMARY_TOKENS)}). "
+        f"`.plans/` is the fallback, not the destination -- see "
+        f"agent-implementation-planning.",
+        file=sys.stderr,
+    )
+    return False
 
 
 def validate_skill(skill_dir: Path) -> bool:
@@ -228,8 +266,11 @@ def main() -> int:
     # installed -- enough for a sentence, not enough for a roster.
     for name, allowance in (("AGENTS.md", 0), ("CLAUDE.md", 2), ("GEMINI.md", 2)):
         rule_path = repo_root / "rules" / name
-        if rule_path.exists() and not check_no_model_names(rule_path, allowance):
-            all_ok = False
+        if rule_path.exists():
+            if not check_no_model_names(rule_path, allowance):
+                all_ok = False
+            if not check_fallback_has_primary(rule_path):
+                all_ok = False
 
     for ps1 in repo_root.glob("*.ps1"):
         if not check_no_bom(ps1) or not check_ascii_only(ps1):
@@ -248,8 +289,11 @@ def main() -> int:
             if not validate_skill(s_dir):
                 all_ok = False
             skill_md = s_dir / "SKILL.md"
-            if skill_md.exists() and not check_no_model_names(skill_md, model_allowance):
-                all_ok = False
+            if skill_md.exists():
+                if not check_no_model_names(skill_md, model_allowance):
+                    all_ok = False
+                if not check_fallback_has_primary(skill_md):
+                    all_ok = False
             if s_dir.name in seen_names:
                 print(
                     f"FAIL [Namespace]: skill '{s_dir.name}' exists in both "

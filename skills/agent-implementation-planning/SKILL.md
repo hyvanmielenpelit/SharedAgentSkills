@@ -3,9 +3,11 @@ name: agent-implementation-planning
 description: >-
   General 5-phase lifecycle workflow for researching, authoring, approving, executing,
   and verifying non-trivial implementation plans for AI coding agents. Covers plan
-  document structure, the plan template, .plans/ artifact naming and versioning,
-  follow-up rounds, progress tracking, walkthroughs, and .plans/ research isolation.
-  Read before starting any multi-file or cross-layer task.
+  document structure, the plan template, the shared plans repository layout,
+  organization/repository scope directories, harmonized _v<N> versioning, the
+  commit-and-push protocol, the .plans/ fallback when the plans repository is
+  unreachable, follow-up rounds, progress tracking, walkthroughs, and research
+  isolation. Read before starting any multi-file or cross-layer task.
 ---
 
 # Agent Implementation Planning Workflow
@@ -24,7 +26,7 @@ changes.
 
 **Related skills**: `agent-subagent-guidelines` for the mandatory Subagent Use section.
 Your harness's own skill for how it reconciles its plan mode or artifact directory with
-`.plans/`.
+the plans repository.
 
 ---
 
@@ -67,14 +69,15 @@ graph TD
 - Use search and file-reading tools to understand affected code, dependencies, and
   implications.
 - **Do NOT modify any files during this phase.** Read-only operations only.
-- **Do NOT read documents from `.plans/`** (see `.plans/` Research Isolation).
+- **Do NOT read documents from the plans repository or from any `.plans/`** (see Plans
+  Isolation During Research).
 
 ### Phase 2 -- Write the Implementation Plan
 
-- Create the plan as a Markdown file under `.plans/`.
+- Create the plan as a Markdown file in the plans repository (see Where to Save Plans).
 - Address open questions and design decisions directly in the plan.
 - If your harness confines you to a private plan file or artifact directory, copy the
-  finished document to `.plans/` **before** requesting approval.
+  finished document to the plans repository **before** requesting approval.
 
 ### Phase 3 -- Obtain User Approval
 
@@ -100,7 +103,8 @@ graph TD
 
 **The person or agent implementing your plan may have none of your context, and may be a
 different model in a different application.** Plans are handed between harnesses through
-`.plans/`, and the implementing session cannot ask the planning session anything.
+the plans repository, and the implementing session cannot ask the planning session
+anything.
 
 - No "as discussed above" across documents; no reliance on session history.
 - Every file path absolute or repository-relative.
@@ -129,6 +133,12 @@ Clarifying questions that impact implementation details.
 ## Execution Target                              <- optional
 Planned in: <harness> (<tier>)
 Intended implementer: <harness> (<tier>)
+
+## Document Set                                  <- if more than one versioned document
+| Document | Version |
+|----------|---------|
+| `implementation_plan_v3.md` | v3 |
+| `client_implementation_plan_v3.md` | v3 (unchanged from v2) |
 
 ## Affected Files                                <- mandatory
 | File | Component / Area | Change |
@@ -182,6 +192,8 @@ interface.
 ### Key structural rules
 
 1. **Affected Files** -- every file the plan touches must be listed.
+1a. **Document Set** -- required whenever the task directory holds more than one versioned
+   document. Omit it for a lone plan. See Version harmonization.
 2. **Build Impact** -- explicitly state which regeneration steps must be re-run, or
    "None".
 3. **Subagent Use** -- mandatory even when the answer is "No" (state why).
@@ -204,22 +216,75 @@ asks for the full format, produce it as the next revision.
 ## Where to Save Plans and Other Documents
 
 All AI-produced documents -- implementation plans, reviews, analyses, bug reports, and
-other structured artifacts -- are saved **inside the repository** under the gitignored
-`.plans/` directory:
+other structured artifacts -- are saved in the **shared `plans` repository**, not inside
+the repository you are working on.
+
+### Resolving the plans root
+
+In this order:
+
+1. **`AGENT_PLANS_ROOT`**, if set and pointing at an existing directory.
+2. **`C:\hmp\plans`**, the standard location on these machines. Naming it directly means
+   the common case resolves without depending on where the current repository sits.
+3. **`<repository-root>/../plans`** -- a `plans` directory beside the repository you are
+   working on. This covers a developer who checks out somewhere other than `C:\hmp`.
+4. **Nothing resolves, or the directory is not writable:** use the fallback below.
+
+Each candidate must be **both** present **and** a Git working tree. A bare directory named
+`plans` is a symptom, not a store; test with `git -C <candidate> rev-parse --git-dir` and
+move to the next rule if it fails.
+
+> [!IMPORTANT]
+> **Never create the plans root yourself.** A directory you create is not a clone: it has
+> no remote, nothing is ever pushed from it, and it silently becomes a second divergent
+> store that looks perfectly healthy. An absent root is a setup problem for the user to
+> fix -- say so, and use the fallback until they do.
+
+### Layout
 
 ```text
-.plans/
-  YYYY-MM-DD/
-    task_name/
-      implementation_plan_v<N>.md       <- N=1 for the first version
-      code_review_v<N>.md               <- example: a review document
-      bug_analysis_v<N>.md              <- example: an analysis document
-      task.md                           <- single file, from the approved plan
-      walkthrough.md                    <- single file, post-completion summary
-      implementation_review_A_v<N>.md   <- follow-up round A
-      task_A.md                         <- follow-up A checklist
-      walkthrough_A.md                  <- follow-up A walkthrough
+<plans-root>/
+  <organization>/
+    <repository>/
+      YYYY-MM-DD/
+        task_name/
+          implementation_plan_v<N>.md       <- N=1 for the first version
+          code_review_v<N>.md               <- example: a review document
+          bug_analysis_v<N>.md              <- example: an analysis document
+          task.md                           <- single file, from the approved plan
+          walkthrough.md                    <- single file, post-completion summary
+          implementation_review_A_v<N>.md   <- follow-up round A
+          task_A.md                         <- follow-up A checklist
+          walkthrough_A.md                  <- follow-up A walkthrough
 ```
+
+### Choosing the scope
+
+The scope mirrors the GitHub path, so a directory maps one-to-one onto a URL:
+`hyvanmielenpelit/GnollHack/` is `github.com/hyvanmielenpelit/GnollHack`.
+
+| Situation | Scope |
+|-----------|-------|
+| One repository | `<organization>/<repository>`, both spelled exactly as on GitHub. The local folder name is not authoritative; the GitHub path is |
+| Several, one clearly main | The main repository's scope. State in the plan's opening paragraph which others are touched and why this one was chosen |
+| Several in one organization, none main | Repository names joined with `_` in **alphabetical order**: `hyvanmielenpelit/GnollHack_MobileGnollHackLogger` |
+| Several spanning organizations, none main | `_general` -- do not invent a joined organization name |
+| No repository at all | `_general` |
+
+The plans repository is **not** a special case: plans about it go to
+`hyvanmielenpelit/plans/`, its ordinary location.
+
+A directory at the plans root is either a GitHub organization or user name, or a special
+scope marked by its first character:
+
+| Prefix | Committed | Meaning | Example |
+|--------|-----------|---------|---------|
+| *(none)* | yes | A GitHub organization or user; repositories live one level below | `hyvanmielenpelit/` |
+| `_` | yes | A special scope belonging to no organization | `_general/` |
+| `.` | **no** | A local-only working area, ignored automatically | `.local/` |
+
+The global "never write scratch into a repository" rule still applies here -- the `.`
+convention is for personal drafts, not for scratch scripts.
 
 ### Directory naming
 
@@ -228,10 +293,30 @@ other structured artifacts -- are saved **inside the repository** under the giti
 - **Task directory**: a short, descriptive `snake_case` name.
 - **Create subdirectories** as needed -- they will not exist the first time.
 - **Conflict resolution**: if the desired task directory already exists under the same
-  date, find the next free name in the sequence `task_name`, `task_name_2`,
+  scope **and** date, find the next free name in the sequence `task_name`, `task_name_2`,
   `task_name_3`, ... Always increment from the **base** name; never nest suffixes
   (`task_name_2_3` is wrong). Never rename the existing folder, and do not read or modify
-  it.
+  it. When both locations are readable, check both before choosing a name.
+
+### Finding an existing task
+
+When picking up work someone else planned, look in the **plans repository first**, then
+the working repository's `.plans/`. A document may legitimately be in either, and a
+fallback document says so in its own header.
+
+### Line endings
+
+Documents in the plans repository are written **CRLF**, as in every repository here.
+`core.autocrlf` is `false` on these machines, so Git will not correct a wrong guess. See
+`agent-powershell-guidelines`.
+
+> [!IMPORTANT]
+> **No secrets.** The plans repository is private but **shared**, and agents push to it
+> without waiting for a human. No credentials, API keys, connection strings, tokens,
+> production hostnames, or personal data may appear in any document. This is a behavioural
+> change from the old `.plans/`, which never left the machine, and it is the most likely
+> way this arrangement causes harm. The rule applies to fallback documents too: they are
+> written locally, but they are written to be moved.
 
 > [!IMPORTANT]
 > **Three distinct suffix types -- do not confuse them:**
@@ -244,7 +329,7 @@ other structured artifacts -- are saved **inside the repository** under the giti
 
 ### Document versioning (STRICT)
 
-Applies to **all** document types in `.plans/`:
+Applies to **all** document types:
 
 1. **First version** always gets `_v1`.
 2. **Never overwrite an existing version.** To revise, create a new file with the next
@@ -257,6 +342,183 @@ Applies to **all** document types in `.plans/`:
 based on whichever plan version was ultimately approved. The walkthrough must state which
 plan version was implemented. Follow-up rounds get lettered variants (`task_A.md`,
 `walkthrough_A.md`).
+
+### Version harmonization across a document set
+
+When one task directory holds several versioned documents describing **one coherent piece
+of work** -- a main plan plus per-repository sub-plans, or a plan plus the analysis it
+depends on -- they form a **document set**, and every member carries the **same version
+number**.
+
+Revising any member bumps **all** members to the next `_v<N>`, **including members with no
+content changes**. An unchanged member is copied verbatim to the new version number. Yes,
+this means writing a file whose only difference from its predecessor is its name. That is
+the intended cost.
+
+- **Mixed versions inside a set are a defect.** `implementation_plan_v3.md` sitting beside
+  `client_implementation_plan_v2.md` leaves a reader unable to tell whether the v2 was
+  reviewed against the v3 or is simply stale. There is no way to recover the answer later.
+- The **main document declares the set** in a `## Document Set` section listing every
+  member at the current version.
+- A carried-forward member may add **exactly one line** directly under its title:
+  `> Unchanged from _v2; version harmonized with implementation_plan_v3.md.` Nothing else
+  in it changes.
+- Harmonization is scoped to **one task directory and one follow-up round**. `task.md` and
+  `walkthrough.md` stay singular and are not set members.
+- A document that is genuinely **independent** -- an unrelated bug analysis, say -- is not
+  a set member and versions on its own. If you are unsure whether it is independent, it is
+  not: put it in the set.
+- **A set is never split across locations.** If the fallback is in play, the whole set is
+  written to `.plans/`, including members that would otherwise have been unchanged copies.
+
+---
+
+## Committing in the Plans Repository
+
+> [!CAUTION]
+> **The `plans` repository is the ONLY repository in which you may run `git commit` or
+> `git push`.**
+>
+> In **every** other repository -- every project repository, the skills repository, and
+> any repository added later -- **committing and pushing are forbidden.** Write the files,
+> leave them modified or untracked, and print the commands for a person to run. This holds
+> even when the change is finished, tested, obviously correct, and the user approved the
+> plan that produced it: **approving a plan is not permission to commit its result.**
+>
+> **Four things that are not exceptions:**
+>
+> 1. **The `.plans/` fallback.** A fallback document is written *inside a project
+>    repository*, so the prohibition applies to it. `.plans/` is gitignored, so there is
+>    nothing to commit -- and if that tempts you toward `git add -f`, stop.
+> 2. **Subagents.** No subagent commits anything, anywhere, including in `plans`. The
+>    orchestrator owns the round and makes its single commit.
+> 3. **A tidy working tree.** Leaving files uncommitted is the intended end state, not an
+>    unfinished one.
+> 4. **The plans repository before its first push.** Until the repository exists on the
+>    remote and a person has made the initial commit, this protocol is dormant: write
+>    documents, leave them untracked, say so.
+>
+> **Before every `git commit` or `git push`, verify the target.** The `-C` path, or the
+> current directory, must resolve to the plans repository. If it does not, do not run the
+> command. A commit aimed at the wrong repository is a rule violation regardless of what it
+> contains, and it can sweep up the user's uncommitted work alongside yours.
+
+Within the plans repository, commit and push **without being asked**. The reason is
+specific to this store:
+
+> Documents here are **append-only**. A revision is a new `_v<N>` file, never an edit to an
+> existing one, so there is no window in which a written document is still changing, and
+> nothing is waiting to be reviewed between writing and committing. Holding the commit back
+> would only delay the moment another developer can see the plan.
+
+### When
+
+**Once per round, at the end** -- after **every** document of that round exists. Never file
+by file.
+
+| Round | Commit when |
+|-------|-------------|
+| Planning | The whole plan set is written (main plan, sub-plans, harmonized members), before requesting approval |
+| Revision | The whole set has been bumped to `_v<N>` |
+| Completion | `task.md` is final **and** `walkthrough.md` is written |
+
+Do **not** commit after each checkbox in `task.md`. It is committed once, with the
+walkthrough, at the end of the round.
+
+### How
+
+```powershell
+git -C <plans-root> pull --ff-only
+git -C <plans-root> add <the exact paths you wrote>
+git -C <plans-root> commit -m "<scope>: <what the document is> for <task_name>"
+git -C <plans-root> push
+```
+
+- **Stage explicit paths. Never `git add .` or `git add -A`.** The clone is shared: a
+  blanket add publishes another developer's or another session's unfinished draft alongside
+  yours.
+- **Commit only files you wrote in this session.**
+- **Never rewrite history** -- no `--amend`, no `--force`, no editing a pushed version.
+  Published versions are the revision history.
+- **If the push is rejected**, `git -C <plans-root> pull --rebase` and push again.
+- **If the push fails for network or authentication reasons**, say so plainly, leave the
+  commit in place, print the push command, and continue. **This is not a fallback case** --
+  the document is already in the right place and reaches everyone on the next push. Do not
+  retry in a loop, and do not report the plan as shared.
+
+Commit message form: `<scope>: <what the document is> for <task_name>`, where `<scope>` is
+the scope path exactly as it appears on disk -- for example
+`hyvanmielenpelit/GnollHack: implementation plan v1 for sso_login`, or
+`_general: walkthrough for build_tooling_audit`.
+
+Run `git -C <plans-root> pull --ff-only` **before** creating a new document too, so a task
+directory created by another developer is visible before you pick a conflicting name.
+
+---
+
+## When the Plans Repository Cannot Be Reached
+
+If the plans root does not resolve, is not a Git working tree, or cannot be written to,
+**write to the working repository's gitignored `.plans/` instead** -- the pre-existing
+layout, unchanged:
+
+```text
+<repository-root>/.plans/YYYY-MM-DD/task_name/
+```
+
+There is no scope directory here: you are already inside the repository, so the scope is
+implied.
+
+**Four things are mandatory, and the first is the one that matters:**
+
+1. **Say so in chat, in the same message that reports the plan's path.** Name the reason
+   and the intended destination. A fallback nobody is told about is indistinguishable from
+   the old, broken arrangement:
+
+   > The plans repository at `C:\hmp\plans` does not exist, so this plan was written to
+   > `C:\hmp\GnollHack\.plans\2026-08-30\sso_login\implementation_plan_v1.md`, which is
+   > gitignored and local to this machine -- **no one else can see it.** Clone
+   > `https://github.com/hyvanmielenpelit/plans` next to the repository, then move the file
+   > to `hyvanmielenpelit/GnollHack/2026-08-30/sso_login/`.
+
+2. **Record it in the document**, directly under the title, so the file explains itself to
+   whoever finds it next:
+
+   ```markdown
+   > **Fallback location.** Written to `.plans/` on 2026-08-30 because the plans
+   > repository could not be reached (not cloned). Intended scope:
+   > `hyvanmielenpelit/GnollHack`. Move to
+   > `<plans-root>/hyvanmielenpelit/GnollHack/2026-08-30/sso_login/` when access is
+   > restored.
+   ```
+
+   This is the one case where a document records its own location. It is worth it: a stray
+   plan with no provenance is a plan nobody dares move.
+
+3. **Write the whole round to `.plans/`.** Never split a document set across the two
+   locations, and never write `task.md` to one and `walkthrough.md` to the other.
+
+4. **Do not commit or push anything -- at all.** You are writing inside a project
+   repository, where committing is forbidden. `.plans/` is gitignored, so there is nothing
+   to commit; if that tempts you toward `git add -f`, stop. A fallback round ends with
+   files on disk and an explanation in chat, and nothing else.
+
+**Which `.plans/` to use.** The repository you are working in. If the scope is `_general`
+or another repository entirely, still use the current repository's `.plans/` and let the
+recorded intended scope carry the truth.
+
+**Version numbers.** Determine `_v<N>` from whichever locations you can read. If the plans
+repository is unreachable you cannot see versions that live there, so continue from the
+highest version visible in `.plans/` and **say that the number may need correcting** when
+the two are reconciled.
+
+**Reconciliation.** At the start of a planning session, if the plans repository *is*
+reachable and the working repository's `.plans/` is non-empty, mention it once and offer to
+move the documents. **Do not move them unattended:** those directories also hold
+pre-migration history that was deliberately left behind, and publishing it is the user's
+decision.
+
+**A failed `git push` is not a fallback case.** See above.
 
 ### How to write files
 
@@ -273,22 +535,24 @@ Agent harnesses impose their own planning workflows, and some restrict where you
 write. **The harness rules always win.** This skill is guidance layered *inside* whatever
 the harness permits.
 
-### `.plans/` is the source of truth
+### The plans repository is the source of truth
 
 A harness may keep its own private plan file or artifact directory. Treat that as a
 **working copy**. The canonical document is always the one in
-`.plans/YYYY-MM-DD/task_name/`.
+`<plans-root>/<organization>/<repository>/YYYY-MM-DD/task_name/` -- or, when the fallback
+is in play, in the working repository's `.plans/`.
 
 This matters because agents hand work to each other. A different agent picking up the task
-reads the **latest `_v<N>` from `.plans/`** and writes its next revision **to `.plans/`**
--- it never looks inside a harness-private directory it does not share.
+reads the **latest `_v<N>`** from there and writes its next revision back to the same
+place -- it never looks inside a harness-private directory it does not share.
 
-### When to make the `.plans/` copy
+### When to make the copy
 
 **As soon as the plan is finished, and immediately before requesting approval.** The copy
 is part of delivering the plan, not part of executing it.
 
-Order: finish writing -> **copy to `.plans/`** -> print the path -> request approval.
+Order: finish writing -> **copy to the plans repository** -> commit the round -> print the
+path -> request approval.
 
 > [!NOTE]
 > **This copy does not violate a harness "no other file edits" restriction.** Such
@@ -301,7 +565,7 @@ Order: finish writing -> **copy to `.plans/`** -> print the path -> request appr
 | Location | Naming | Revising |
 |----------|--------|----------|
 | Harness-private plan file | Whatever the harness assigns | Edit **in place** |
-| `.plans/` | `<document_name>_v<N>.md` | **Never overwrite** -- increment |
+| Plans repository (or a `.plans/` fallback) | `<document_name>_v<N>.md` | **Never overwrite** -- increment |
 
 ### Your harness's own mechanics
 
@@ -392,23 +656,31 @@ Does it touch multiple files, cross subsystem boundaries, or change a contract?
 
 ---
 
-## `.plans/` Isolation During Research
+## Plans Isolation During Research
 
-The `.plans/` directory accumulates plans, analyses, and reviews from past and current
-tasks -- including **superseded drafts** (`_v1` when `_v2` was approved), **rejected
-approaches**, and **stale analyses** whose assumptions no longer hold.
+Both plan locations accumulate plans, analyses, and reviews from past and current tasks --
+including **superseded drafts** (`_v1` when `_v2` was approved), **rejected approaches**,
+and **stale analyses** whose assumptions no longer hold.
 
 > [!CAUTION]
-> **Do NOT browse or read `.plans/` during Phase 1 (Research).** Old plan content corrupts
-> research by injecting outdated design decisions and rejected approaches into your
-> analysis. Base research exclusively on the **actual source code, project files, tests,
-> and skill documentation** -- these are the ground truth.
+> **Do NOT browse or read the plans repository or any `.plans/` during Phase 1
+> (Research).** Old plan content corrupts research by injecting outdated design decisions
+> and rejected approaches into your analysis. Base research exclusively on the **actual
+> source code, project files, tests, and skill documentation** -- these are the ground
+> truth.
+
+> [!CAUTION]
+> **Never read another scope's directory.** The plans repository holds plans for
+> repositories you are not working in, and for work by developers you are not working
+> with. Cross-repository reading was impossible when each repository kept its own
+> `.plans/`, and is now one `cd` away. Stay inside your own
+> `<organization>/<repository>/` scope.
 
 ### Rules for orchestrating agents
 
 | Situation | Rule |
 |-----------|------|
-| **Phase 1 -- Research** | Do NOT read any file under `.plans/`. Research the actual codebase. |
+| **Phase 1 -- Research** | Do NOT read any file in either location. Research the actual codebase. |
 | **Phase 2 -- Writing a plan** | Do NOT read other tasks' plans. You may read your own task's prior versions if the user asked you to revise. |
 | **Phase 4 -- Execution** | Read **only** the approved plan for the current task. |
 | **Follow-up rounds** | You may read the walkthrough and plan from the **same task directory**. |
@@ -418,8 +690,9 @@ approaches**, and **stale analyses** whose assumptions no longer hold.
 
 Subagents operate on a **strict need-to-know basis**:
 
-- **Do NOT read any file in `.plans/`** unless the orchestrator gives a specific path and
-  instructs you to read it.
+- **Do NOT read any file in either plan location** unless the orchestrator gives a
+  specific path and instructs you to read it. Never a path outside the current task's
+  directory.
 - The orchestrator passes relevant context **in the subagent's prompt**, not by pointing
   it at the directory.
 
@@ -429,7 +702,9 @@ Subagents operate on a **strict need-to-know basis**:
    rejected. An agent reading it may unconsciously adopt the rejected design.
 2. **Cross-task contamination** -- plans for unrelated tasks may describe changes to the
    same files with different intent.
-3. **Token waste** -- `.plans/` grows large; reading irrelevant plans spends context that
+3. **Token waste** -- the store grows large; reading irrelevant plans spends context that
    should go to source code.
-4. **Subagent scope creep** -- subagents that browse `.plans/` discover context beyond
+4. **Subagent scope creep** -- subagents that browse the store discover context beyond
    their assignment, leading to out-of-scope changes.
+5. **Cross-repository contamination** -- a shared store puts every repository's plans one
+   directory away from every other repository's.

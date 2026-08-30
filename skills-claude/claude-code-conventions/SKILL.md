@@ -43,7 +43,7 @@ If the roster has changed, the property still selects correctly and the hint doe
 
 A plan whose **Execution Target** names Antigravity is handed over by **a person opening
 that application** -- not by spawning a subagent, which is impossible. The plan document
-in `.plans/` is the entire interface between the two.
+in the plans repository is the entire interface between the two.
 
 If asked to hand work to the other application, say plainly that this
 application cannot spawn another vendor's models, and point at the Execution Target line
@@ -103,4 +103,20 @@ exiting non-zero instead of writing.
 
 Claude Code has no `brain/` directory. Use the session scratchpad directory Claude Code
 reports in its own environment. **Never** write temporary files, scratch scripts, or
-guidance files anywhere inside a repository; the sole in-tree exception is `.plans/`.
+guidance files anywhere inside a repository.
+
+Planning documents no longer live in-tree either: they go to the shared `plans`
+repository. The one in-tree exception left is `.plans/`, and only as the **fallback** when
+that repository cannot be reached -- not as a home. See `agent-implementation-planning`.
+
+### Reaching the plans repository
+
+The plans root sits outside the project directory, so a session needs it granted:
+
+- **Committed, per repository:** `.claude/settings.json` with
+  `"permissions": { "additionalDirectories": ["../plans"] }`. This grants the plans
+  directory specifically and nothing above it -- never grant the parent that holds every
+  repository on the machine.
+- **One-off:** `/add-dir` in the session.
+- **Refused or unavailable:** that is a fallback case. Write to the working repository's
+  `.plans/`, say so in chat, and record the intended scope in the document.

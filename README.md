@@ -30,7 +30,7 @@ SharedAgentSkills/
 ```
 
 > [!IMPORTANT]
-> `.agents/`, `.claude/`, `docs/`, and `.plans/` are **never** linked, copied, or
+> `.agents/`, `.claude/`, `docs/`, and the fallback `.plans/` are **never** linked, copied, or
 > inlined into any harness configuration. Only `skills/`, `skills-claude/`,
 > `skills-gemini/`, and `rules/` are distributed.
 
@@ -44,6 +44,21 @@ SharedAgentSkills/
 ---
 
 ## Installation
+
+### Prerequisite: the shared plans repository
+
+Implementation plans, reviews, and walkthroughs live in the private
+[`hyvanmielenpelit/plans`](https://github.com/hyvanmielenpelit/plans) repository, not
+inside any project repository. Clone it beside the others:
+
+```powershell
+git clone https://github.com/hyvanmielenpelit/plans.git C:\hmp\plans
+```
+
+Agents resolve its root as `AGENT_PLANS_ROOT`, else `C:\hmp\plans`, else a `plans`
+directory beside the repository being worked on. **Without it, every agent silently falls
+back to each repository's gitignored `.plans/`** -- work continues, but the documents stay
+on one machine. `setup.ps1` warns when the clone is missing.
 
 ### Windows
 
