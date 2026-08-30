@@ -8,8 +8,6 @@ loads into every context window.
 - **Never write temporary files, scratch scripts, or intermediate data into a repository**
   -- not the root, not a scratch directory inside it, not anywhere in the source tree.
 - Use the agent's dedicated scratch directory. **Your harness rules name the exact path.**
-- The sole in-tree exception is `.plans/`, the gitignored **fallback** for plans when the
-  `plans` repository is unreachable.
 - If a build genuinely requires temporary files inside the project, put them in a
   dedicated `tmp/` or `build/` directory that is gitignored, and clean up.
 
@@ -22,12 +20,14 @@ loads into every context window.
 
 ## Implementation Plans
 
-- Plans, reviews, and walkthroughs go to the shared `plans` repository:
+- Plans, reviews, and walkthroughs go to the shared `plans` repository -- but **only** for
+  repositories in an **allowed organization**, listed in `agent-implementation-planning`:
   `<root>/<organization>/<repository>/YYYY-MM-DD/task_name/`. Resolve `<root>` as
   `AGENT_PLANS_ROOT`, else `C:\hmp\plans`, else a `plans` directory beside your
-  repository; never create it. Details: `agent-implementation-planning`.
-- **If none resolves**, write to the repository's gitignored `.plans/YYYY-MM-DD/task_name/`
-  and **say so in chat**. Never silently.
+  repository; never create it.
+- **Otherwise** use the repository's `.plans/`, and **only if `git check-ignore -q .plans`
+  succeeds**. If it does not, keep the plan in the chat and write no file.
+- **Say which of the three applies.**
 
 ## Environment Constraints
 

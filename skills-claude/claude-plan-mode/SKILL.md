@@ -47,11 +47,21 @@ harness wins** -- and both are satisfiable.
 6. **On approval**, create `task.md`, execute, and finish with `walkthrough.md`.
 
 > [!IMPORTANT]
-> **The plans root must be reachable from this session.** It sits outside the project
-> directory, so it needs `permissions.additionalDirectories` in the repository's
+> **Steps 2 and 3 apply to tier 1 only.** `agent-implementation-planning` decides the
+> tier before you write anything:
+>
+> - **Tier 2** (gitignored `.plans/`): the copy goes there instead, and **nothing is
+>   committed** -- the commit carve-out belongs to the plans repository alone.
+> - **Tier 3** (chat only): there is no copy and no commit. Call `ExitPlanMode` with the
+>   plan in the conversation, which is the harness working exactly as designed.
+>
+> The harness plan file is written the same way in all three cases.
+
+> [!IMPORTANT]
+> **For tier 1, the plans root must be reachable from this session.** It sits outside the
+> project directory, so it needs `permissions.additionalDirectories` in the repository's
 > `.claude/settings.json` (committed, `"../plans"`), or `/add-dir` for a one-off session.
-> If neither is available and the write is refused, that is a fallback case: write to the
-> working repository's `.plans/` and **say so** -- see `agent-implementation-planning`.
+> If neither is available and the write is refused, drop to tier 2 or 3 and **say so**.
 
 > [!NOTE]
 > **Why step 2 is allowed during plan mode.** Plan mode's restriction exists to keep the

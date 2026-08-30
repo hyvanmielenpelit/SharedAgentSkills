@@ -5,9 +5,10 @@ description: >-
   and verifying non-trivial implementation plans for AI coding agents. Covers plan
   document structure, the plan template, the shared plans repository layout,
   organization/repository scope directories, harmonized _v<N> versioning, the
-  commit-and-push protocol, the .plans/ fallback when the plans repository is
-  unreachable, follow-up rounds, progress tracking, walkthroughs, and research
-  isolation. Read before starting any multi-file or cross-layer task.
+  commit-and-push protocol, the allowed-organization list that decides whether a plan
+  may be stored at all, the gitignored .plans/ fallback and the chat-only tier below it,
+  follow-up rounds, progress tracking, walkthroughs, and research isolation. Read before
+  starting any multi-file or cross-layer task.
 ---
 
 # Agent Implementation Planning Workflow
@@ -219,6 +220,79 @@ All AI-produced documents -- implementation plans, reviews, analyses, bug report
 other structured artifacts -- are saved in the **shared `plans` repository**, not inside
 the repository you are working on.
 
+### What may be stored in the plans repository
+
+**Only plans for repositories in an allowed GitHub organization.** Work that belongs to no
+repository is never stored here, however useful it is.
+
+| Allowed organization | Why |
+|----------------------|-----|
+| `hyvanmielenpelit` | Our own repositories |
+| `dotnet` | Upstream .NET work, usually via a fork |
+| `mono` | Upstream Mono work, usually via a fork |
+
+Every repository inside those organizations qualifies; nothing outside them does. To change
+this list, see `docs/plans-repository-allowlist.md` in the `SharedAgentSkills` repository --
+it names every file that has to change together.
+
+**Decide the tier before writing anything, and say which one applies when you deliver the
+plan.** A reader cannot otherwise tell whether a plan is shared, local, or ephemeral.
+
+| Tier | Where | When |
+|------|-------|------|
+| **1. Plans repository** | `<plans-root>/<organization>/<repository>/YYYY-MM-DD/task_name/` | The work is about one or more repositories in an allowed organization, and the root resolves |
+| **2. Gitignored `.plans/`** | `<repository-root>/.plans/YYYY-MM-DD/task_name/` | Tier 1 does not apply, **and** Git confirms `.plans/` is ignored in that repository |
+| **3. Chat only** | Nowhere on disk | Neither of the above. Write the plan into the conversation and create no file |
+
+#### Determining the organization
+
+Read it from the remote; do not infer it from the folder name, which proves nothing --
+clones get renamed, and the scope must match the GitHub path it claims:
+
+```powershell
+git -C <repository> remote get-url origin
+```
+
+The organization is the path segment before the repository name.
+
+- **Forks.** If `origin` is not in an allowed organization but an `upstream` remote is, use
+  **`upstream`** for the scope. That is where the work is destined, and it is the normal
+  shape of contributing to `dotnet` or `mono`.
+- **No remote at all** -- a local-only repository -- is not eligible for tier 1. There is
+  no GitHub path to mirror.
+
+#### The `.plans/` precondition
+
+> [!CAUTION]
+> **Never create a `.plans/` directory that the repository would commit.** In our own
+> repositories `.plans/` is already ignored and tier 2 is available. In an upstream
+> repository such as `dotnet/runtime` it is **not** ignored, and writing there puts
+> agent-generated documents into the working tree of a repository you are preparing a pull
+> request from -- one `git add -A` from the PR.
+
+Ask Git, not the file. The answer can come from a nested `.gitignore`, `.git/info/exclude`,
+or the global excludes file, and only Git knows all three:
+
+```powershell
+git -C <repository> check-ignore -q .plans
+```
+
+Exit code `0` means ignored: tier 2 is available. Exit `1` means **not** ignored: go to
+tier 3. **Do not add `.plans/` to that repository's `.gitignore`** -- that is a change to
+someone else's repository, made for your own convenience.
+
+#### Tier 3 in practice
+
+Tier 3 restricts **storage, not process**. The plan is still written in full, still follows
+the mandatory format, and still requires approval before any file is edited. What changes:
+
+- No plan file, no `task.md`, no `walkthrough.md`.
+- Track progress with the harness's own todo mechanism instead of `task.md`.
+- **The plan does not survive the session.** Say so when you deliver it -- the user may
+  want to keep a copy themselves.
+
+---
+
 ### Resolving the plans root
 
 In this order:
@@ -268,19 +342,20 @@ The scope mirrors the GitHub path, so a directory maps one-to-one onto a URL:
 | One repository | `<organization>/<repository>`, both spelled exactly as on GitHub. The local folder name is not authoritative; the GitHub path is |
 | Several, one clearly main | The main repository's scope. State in the plan's opening paragraph which others are touched and why this one was chosen |
 | Several in one organization, none main | Repository names joined with `_` in **alphabetical order**: `hyvanmielenpelit/GnollHack_MobileGnollHackLogger` |
-| Several spanning organizations, none main | `_general` -- do not invent a joined organization name |
-| No repository at all | `_general` |
+| Several spanning organizations, none main | The organization/repository **where the work primarily lands** -- the working tree you actually edit |
+| Any repository outside an allowed organization | **Not tier 1.** Use tier 2 or 3, regardless of how the work looks |
+| No repository at all | **Not stored here.** Use tier 2 or 3 |
 
 The plans repository is **not** a special case: plans about it go to
 `hyvanmielenpelit/plans/`, its ordinary location.
 
-A directory at the plans root is either a GitHub organization or user name, or a special
-scope marked by its first character:
+**Every top-level directory in the plans repository is a GitHub organization name.** There
+is no committed scope for anything else -- that is what restricting the store to allowed
+repositories means.
 
 | Prefix | Committed | Meaning | Example |
 |--------|-----------|---------|---------|
 | *(none)* | yes | A GitHub organization or user; repositories live one level below | `hyvanmielenpelit/` |
-| `_` | yes | A special scope belonging to no organization | `_general/` |
 | `.` | **no** | A local-only working area, ignored automatically | `.local/` |
 
 The global "never write scratch into a repository" rule still applies here -- the `.`
@@ -449,18 +524,26 @@ git -C <plans-root> push
 Commit message form: `<scope>: <what the document is> for <task_name>`, where `<scope>` is
 the scope path exactly as it appears on disk -- for example
 `hyvanmielenpelit/GnollHack: implementation plan v1 for sso_login`, or
-`_general: walkthrough for build_tooling_audit`.
+`dotnet/runtime: walkthrough for gc_latency_probe`.
 
 Run `git -C <plans-root> pull --ff-only` **before** creating a new document too, so a task
 directory created by another developer is visible before you pick a conflicting name.
 
 ---
 
-## When the Plans Repository Cannot Be Reached
+## When the Plans Repository Is Not Available
 
-If the plans root does not resolve, is not a Git working tree, or cannot be written to,
-**write to the working repository's gitignored `.plans/` instead** -- the pre-existing
-layout, unchanged:
+Two different conditions land here, and they are handled identically:
+
+1. **The root is unavailable** -- it does not resolve, is not a Git working tree, or
+   cannot be written to.
+2. **The repository is not eligible** -- it is outside every allowed organization, or it
+   has no remote, or the work belongs to no repository at all.
+
+In both cases, **write to the working repository's `.plans/` instead** -- the pre-existing
+layout, unchanged -- **but only if Git confirms it is ignored** (`git check-ignore -q
+.plans`). If it is not ignored, this section does not apply: go to **tier 3** and keep the
+plan in the chat, creating no file anywhere.
 
 ```text
 <repository-root>/.plans/YYYY-MM-DD/task_name/
@@ -503,9 +586,10 @@ implied.
    to commit; if that tempts you toward `git add -f`, stop. A fallback round ends with
    files on disk and an explanation in chat, and nothing else.
 
-**Which `.plans/` to use.** The repository you are working in. If the scope is `_general`
-or another repository entirely, still use the current repository's `.plans/` and let the
-recorded intended scope carry the truth.
+**Which `.plans/` to use.** The repository you are working in. If the work belongs to
+another repository entirely, still use the current repository's `.plans/` and let the
+recorded intended scope carry the truth -- and confirm that repository's `.plans/` is
+ignored, not the other one's.
 
 **Version numbers.** Determine `_v<N>` from whichever locations you can read. If the plans
 repository is unreachable you cannot see versions that live there, so continue from the

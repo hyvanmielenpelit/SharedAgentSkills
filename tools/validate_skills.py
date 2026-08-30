@@ -154,6 +154,26 @@ def validate_rules_size(repo_root: Path) -> bool:
 FALLBACK_TOKEN = ".plans/"
 PRIMARY_TOKENS = ("AGENT_PLANS_ROOT", "plans repository")
 
+# The plans repository stores plans only for repositories in an allowed GitHub
+# organization; there is no committed scope for anything else. "_general" was that
+# scope until it was retired, and a documented slot for it is an invitation to
+# recreate exactly what the restriction bans.
+RETIRED_TOKENS = ("_general",)
+
+
+def check_no_retired_scopes(path: Path) -> bool:
+    text = path.read_text(encoding="utf-8")
+    for token in RETIRED_TOKENS:
+        if token in text:
+            print(
+                f"FAIL [Retired Scope]: {path} mentions '{token}', a scope that no longer "
+                f"exists. Every top-level directory in the plans repository is a GitHub "
+                f"organization; see agent-implementation-planning.",
+                file=sys.stderr,
+            )
+            return False
+    return True
+
 
 def check_fallback_has_primary(path: Path) -> bool:
     """`.plans/` is the FALLBACK location for planning documents, never their
@@ -271,6 +291,8 @@ def main() -> int:
                 all_ok = False
             if not check_fallback_has_primary(rule_path):
                 all_ok = False
+            if not check_no_retired_scopes(rule_path):
+                all_ok = False
 
     for ps1 in repo_root.glob("*.ps1"):
         if not check_no_bom(ps1) or not check_ascii_only(ps1):
@@ -293,6 +315,8 @@ def main() -> int:
                 if not check_no_model_names(skill_md, model_allowance):
                     all_ok = False
                 if not check_fallback_has_primary(skill_md):
+                    all_ok = False
+                if not check_no_retired_scopes(skill_md):
                     all_ok = False
             if s_dir.name in seen_names:
                 print(

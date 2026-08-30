@@ -23,11 +23,18 @@ The artifact guidelines say to save extensive reports and analysis summaries to 
 artifact directory (`<appDataDir>/brain/<conversation-id>/`). The convention says the
 canonical document lives in the shared `plans` repository. **Both receive the file.**
 
-1. **Create the artifact** in the artifact directory, so the UI can present it.
+1. **Create the artifact** in the artifact directory, so the UI can present it. This
+   happens in every case.
 2. **Copy it** to
    `<plans-root>/<organization>/<repository>/YYYY-MM-DD/task_name/<document_name>_v<N>.md`.
 3. **Commit the round** in the plans repository, per `agent-implementation-planning`.
 4. **Present the artifact and wait for approval** before editing any project file.
+
+> [!IMPORTANT]
+> **Steps 2 and 3 apply to tier 1 only.** `agent-implementation-planning` decides the tier
+> before you write anything: under **tier 2** the copy goes to the working repository's
+> gitignored `.plans/` and nothing is committed; under **tier 3** there is no copy at all
+> and the plan lives in the conversation. Step 1 and step 4 are unchanged in all three.
 
 The plans repository is canonical. Other agents -- in other sessions and in the other
 application, on other machines -- read revisions from there and never look inside the
