@@ -1,2 +1,20 @@
-* text=auto
+# This repository's working tree is CRLF, matching GnollHack, MobileGnollHackLogger,
+# and the shared plans repository. Content is stored LF-normalized in Git; only the
+# checkout is CRLF. The explicit eol is required, not decorative: core.autocrlf is
+# false on these machines, so without it Git performs no conversion at all and the
+# checkout simply inherits the stored LF.
+* text=auto eol=crlf
+
+# Redundant under the blanket rule above, kept explicit so that changing the blanket
+# rule can never silently alter what PowerShell tooling receives.
 *.ps1 text eol=crlf
+
+# EXEMPTIONS -- consumed by GitHub Actions on ubuntu-latest, where CRLF breaks.
+# A workflow checked out with CRLF feeds a trailing "\r" into every `run:` block and
+# bash fails with: $'\r': command not found.
+*.yml  text eol=lf
+*.yaml text eol=lf
+
+# Executed by the CI job on Linux. Python tolerates CRLF, but keeping it LF avoids
+# depending on that tolerance and survives the file ever being run via a shebang.
+*.py text eol=lf

@@ -197,8 +197,45 @@ This is the single most common area where AI agents corrupt files on Windows.
 
   Inside a git working tree, `git ls-files --eol <path>` reports both sides at
   once (`i/` = index, `w/` = working tree). When modifying an **existing** file,
-  match whatever `w/` reports, regardless of the OS; use the OS default only when
-  creating a **new** file, and never mix conventions within one file.
+  match whatever `w/` reports, and never mix conventions within one file.
+
+- **Which convention to use: CRLF, with two kinds of exception.**
+
+  | File | Convention | Why |
+  |------|-----------|-----|
+  | Everything, by default | **CRLF** | Every repository here declares `* text=auto eol=crlf`. Git stores LF-normalized content either way; only the checkout is CRLF |
+  | `*.yml`, `*.yaml`, `*.py` consumed by CI | **LF** | Checked out on a Linux runner. `eol` in `.gitattributes` applies on **every** platform, so a CRLF workflow puts a trailing `\r` on each line of every `run:` block and bash dies with `` $'\r': command not found `` -- an error naming a command that does not exist, not a line ending |
+  | A file that disagrees with the above | **Match the file** | The repository you are in may not have been converted. `git ls-files --eol` is the authority, not this table |
+
+  > [!CAUTION]
+  > **Do not "fix" an LF file sitting in a CRLF repository until you know why it is
+  > LF.** In `SharedAgentSkills`, `.github/workflows/*.yml` and `tools/*.py` are LF
+  > *deliberately*, pinned in both `.gitattributes` and `.editorconfig` with the
+  > reason written beside them. Normalizing them breaks CI, and the failure points
+  > somewhere else entirely.
+
+  **Practical consequences.**
+
+  - `core.autocrlf` is `false` on these machines, overriding the system-level
+    `true`. Git therefore converts **nothing** on checkout beyond what
+    `.gitattributes` `eol` dictates, and it corrects nothing on the way in: the
+    bytes a tool writes are the bytes that get committed.
+  - Harness file-writing tools generally emit **LF**. A file you create or fully
+    rewrite needs converting before you hand the work back:
+
+    ```powershell
+    $enc = New-Object System.Text.UTF8Encoding($false)
+    $t = [System.IO.File]::ReadAllText($abs)
+    [System.IO.File]::WriteAllText($abs, (($t -replace "`r`n","`n") -replace "`n","`r`n"), $enc)
+    ```
+
+  - Converting line endings produces **no Git diff**: the stored blob is already
+    LF-normalized, so `git add` on a converted file stages nothing. `git status`
+    may still list it as modified -- that is a stale index `mtime`, not a change.
+    Clear it with `git add --renormalize . ; git reset -q`, and do that **before**
+    reviewing a diff, or real changes are buried among phantom ones.
+  - Because the conversion is invisible to Git, another developer's working tree
+    does **not** change when they pull. `eol` is applied at checkout, not at pull.
 
 ---
 

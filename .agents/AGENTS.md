@@ -60,10 +60,14 @@ for every harness-specific item: `docs/harness-matrix.md`.
   every project. Anything longer is a triggered skill.
 - **`.ps1` files are ASCII-only** and UTF-8 without BOM. Windows PowerShell 5.1
   parses BOM-less scripts using the system ANSI code page.
-- **Line endings: LF.** This repository's `.editorconfig` specifies `lf`, unlike
-  the CRLF working trees of `GnollHack` and `MobileGnollHackLogger`. An agent
-  arriving from either project repository will get this wrong by habit. Verify by
-  byte count, never with `grep`, `head`, or `file`.
+- **Line endings: CRLF**, matching `GnollHack`, `MobileGnollHackLogger`, and the
+  shared plans repository. `.editorconfig` and `.gitattributes` both specify it,
+  and the `eol=crlf` there is load-bearing: `core.autocrlf` is `false` on these
+  machines, so Git converts nothing and whatever a tool writes is what gets
+  committed. **Two exemptions**, because GitHub Actions runs them on Linux:
+  `*.yml` and `*.py` stay **LF**. A workflow checked out with CRLF feeds `\r`
+  into every `run:` block and bash fails. Verify by byte count, never with
+  `grep`, `head`, or `file`, which strip CR silently under Git Bash.
 - **Run `python tools/validate_skills.py` before handing work back.**
 
 ## Regeneration Boundaries

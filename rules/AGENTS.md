@@ -28,8 +28,9 @@ loads into every context window.
 
 - **BOM**: write text, JSON, and source files in **UTF-8 without a BOM**, unless a
   specific toolchain requires one (for example Visual Studio `.sln` and `.vcxproj` files).
-- **Line endings**: match the repository's existing convention. Never mix styles within a
-  file, and never guess from the OS -- check the file you are editing.
+- **Line endings**: **CRLF**, except files a Linux CI job consumes (`*.yml`, `*.py`),
+  which stay LF. Never mix styles in one file; verify by byte count, never with `grep`
+  or `file`. Details: `agent-powershell-guidelines`.
 
 ## Important Warnings
 

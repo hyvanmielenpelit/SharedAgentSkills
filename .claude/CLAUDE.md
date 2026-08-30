@@ -13,10 +13,12 @@
 The repository rules live in `.agents/AGENTS.md`, imported at the top of this
 file. Edit them there, not here. This file exists so Claude Code picks them up.
 
-- **This repository is LF.** Both project repositories are CRLF working trees.
-  Claude Code's `Write` tool emits LF, which is correct *here* and wrong in
-  `GnollHack` and `MobileGnollHackLogger`. Check before writing, and never use
-  `grep`, `head`, or `file` to detect line endings — Git Bash strips CR silently.
+- **This repository is CRLF**, like every other repository here. Claude Code's
+  `Write` tool emits LF, so a file it creates or rewrites needs converting before
+  you hand the work back. The exceptions are `.github/workflows/*.yml` and
+  `tools/*.py`, which stay **LF** because GitHub Actions runs them on Linux.
+  Check before writing, and never use `grep`, `head`, or `file` to detect line
+  endings — Git Bash strips CR silently.
 - **You are editing the globally installed skills.** `~/.claude/skills/*` and
   `~/.gemini/config/skills/*` are junctions into this working tree, so an edit to
   a file inside an existing skill is live for every session on this machine
