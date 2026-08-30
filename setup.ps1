@@ -47,10 +47,12 @@ Write-Host ""
 $plansRoot = $env:AGENT_PLANS_ROOT
 if (-not $plansRoot) { $plansRoot = 'C:\hmp\plans' }
 $plansOk = $false
+$plansFound = $null
 foreach ($candidate in @($plansRoot, (Join-Path (Split-Path -Parent $repoRoot) 'plans'))) {
     if ($candidate -and (Test-Path (Join-Path $candidate '.git'))) {
         Write-Host ("Plans repository: {0}" -f $candidate) -ForegroundColor DarkGray
         $plansOk = $true
+        $plansFound = $candidate
         break
     }
 }
@@ -60,6 +62,32 @@ if (-not $plansOk) {
     Write-Host "  Without it, every agent silently falls back to each repository's .plans/," -ForegroundColor Yellow
     Write-Host "  which is gitignored and local to this machine. Clone it with:" -ForegroundColor Yellow
     Write-Host "    git clone https://github.com/hyvanmielenpelit/plans.git C:\hmp\plans" -ForegroundColor Yellow
+}
+
+# Configure that clone so a bare `git pull` rebases instead of merging. The store
+# is append-only, so a rebase replays cleanly and keeps the history linear -- and
+# a linear history is what a reader traces when asking what was decided and when.
+# A merge commit there carries no information.
+#
+# Set here because git config does NOT travel with a clone: every developer would
+# otherwise have to run these two commands by hand, and this script is already the
+# prerequisite everyone runs. Local to that clone; nothing else on the machine is
+# affected, and `git config --unset` reverses it.
+if ($plansOk) {
+    $plansConfig = @(
+        [PSCustomObject]@{ Key = 'pull.rebase';      Value = 'true' },
+        [PSCustomObject]@{ Key = 'rebase.autoStash'; Value = 'true' }
+    )
+    foreach ($cfg in $plansConfig) {
+        $current = & git -C $plansFound config --local --get $cfg.Key
+        if ($current -eq $cfg.Value) { continue }
+        if ($DryRun) {
+            Write-Host ("  Would set {0}={1} in the plans clone" -f $cfg.Key, $cfg.Value) -ForegroundColor Yellow
+        } else {
+            & git -C $plansFound config --local $cfg.Key $cfg.Value
+            Write-Host ("  Set {0}={1} in the plans clone" -f $cfg.Key, $cfg.Value) -ForegroundColor Green
+        }
+    }
 }
 Write-Host ""
 

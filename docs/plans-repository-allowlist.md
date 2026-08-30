@@ -82,7 +82,9 @@ likeliest to drift. An agent must load the planning skill before writing a plan 
    python tools\validate_skills.py
    ```
 
-3. Regenerate the inlined rules (see the boundary below):
+3. Regenerate the inlined rules (see the boundary below). The same script also
+   configures the plans clone to rebase rather than merge on `git pull`, which is why it
+   is worth running even when only the list changed:
 
    ```powershell
    .\setup.ps1

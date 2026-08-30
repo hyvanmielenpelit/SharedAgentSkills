@@ -503,7 +503,7 @@ walkthrough, at the end of the round.
 ### How
 
 ```powershell
-git -C <plans-root> pull --ff-only
+git -C <plans-root> pull --rebase --autostash
 git -C <plans-root> add <the exact paths you wrote>
 git -C <plans-root> commit -m "<scope>: <what the document is> for <task_name>"
 git -C <plans-root> push
@@ -515,11 +515,16 @@ git -C <plans-root> push
 - **Commit only files you wrote in this session.**
 - **Never rewrite history** -- no `--amend`, no `--force`, no editing a pushed version.
   Published versions are the revision history.
-- **If the push is rejected**, `git -C <plans-root> pull --rebase` and push again.
-- **If the push fails for network or authentication reasons**, say so plainly, leave the
-  commit in place, print the push command, and continue. **This is not a fallback case** --
-  the document is already in the right place and reaches everyone on the next push. Do not
-  retry in a loop, and do not report the plan as shared.
+- **A rejected push and a failed push are different failures.** Do not treat them alike:
+
+  | Symptom | Meaning | Action |
+  |---------|---------|--------|
+  | `! [rejected] ... (fetch first)` | Upstream moved. Normal in a shared repository | **Sync and retry** -- see below, up to **3** attempts |
+  | Network unreachable, authentication failure, no `origin` | The remote is not usable right now | **Do not retry.** Leave the commit, print the push command, and say the plan is committed but **not** shared |
+
+  For the second, this is **not a fallback case** -- the document is already in the right
+  place and reaches everyone on the next push. Do not retry in a loop, and do not report
+  the plan as shared.
 
 Commit message form: `<scope>: <what the document is> for <task_name>`, where `<scope>` is
 the scope path exactly as it appears on disk -- for example
@@ -527,7 +532,78 @@ the scope path exactly as it appears on disk -- for example
 `dotnet/runtime: walkthrough for gc_latency_probe`.
 
 Run `git -C <plans-root> pull --ff-only` **before** creating a new document too, so a task
-directory created by another developer is visible before you pick a conflicting name.
+directory created by another developer is visible before you pick a conflicting name. This
+is the cheapest conflict prevention there is: a version collision only happens when two
+sessions start from the same base. If that pull fails because you have local commits that
+were never pushed -- the state a previous failed push leaves behind -- use the sync sequence
+below instead.
+
+### When the push is rejected
+
+A rejected push means upstream moved while you were working. Sync and try again:
+
+```powershell
+git -C <plans-root> pull --rebase --autostash
+git -C <plans-root> push
+```
+
+**Up to three attempts in total.** Someone can push between your pull and your push, so one
+retry is not always enough; a fourth failure means something is wrong that retrying will not
+fix, and an unbounded loop against a network service is its own hazard.
+
+**Rebase, not merge.** This store is append-only, so your commit almost never touches the
+same lines as theirs and a rebase replays it cleanly. Its history exists to answer "what did
+we decide, and in what order", and a merge commit inserts a node carrying no information
+into exactly the history a reader is following. This does not violate the
+never-rewrite-history rule: that protects **published** commits, and a rebase here replays
+only your local, unpushed one. `--autostash` is not optional -- you stage explicit paths, so
+another session's unstaged drafts may be sitting in the shared clone, and without it the
+rebase refuses on something that is not even a conflict.
+
+#### If the rebase stops on a conflict
+
+Conflicts here fall into four classes, and **only one of them is yours to resolve**:
+
+| Class | What it looks like | Resolution |
+|-------|--------------------|-----------|
+| **A. Disjoint** | Different tasks, or different `_v<N>` files in one task | Never reaches you -- the rebase is silent |
+| **B. Version collision** | Both sessions created the same `_v<N>` filename, with different content | **Resolve it: renumber** |
+| **C. Mutable document** | Both edited `task.md` or `walkthrough.md` | **Escalate** |
+| **D. Store metadata** | Both edited the root `README.md` | **Escalate** |
+
+**Class B -- renumber.** This is not a text merge. Two sessions each claimed the same
+version, so they are two different documents, and splicing their prose produces one that
+neither author wrote. The versioning rule already gives the answer -- never overwrite a
+version, increment:
+
+1. `git -C <plans-root> rebase --abort` -- clean tree, local commit intact.
+2. `git -C <plans-root> pull --rebase --autostash`, then look at which versions now exist.
+3. Rename your document to the next free version, and **every other member of its document
+   set with it** -- a set is never split across versions.
+4. Add one line under the title:
+   `> Renumbered from _v3; v3 was taken upstream.`
+5. Re-commit and push.
+
+> [!IMPORTANT]
+> **Do not resolve this with `--ours` / `--theirs`.** During a **rebase** they are inverted
+> relative to intuition: `--ours` is the upstream branch and `--theirs` is the commit being
+> replayed. Aborting and renumbering avoids the trap entirely, and is what the versioning
+> rule wants anyway.
+
+**Classes C and D -- escalate.** These are prose. Two accounts of what happened must not be
+silently spliced: being a faithful record is the whole value of this store.
+
+1. `git -C <plans-root> rebase --abort`. The local commit survives and the working tree
+   returns to exactly its pre-pull state, with no conflict markers written anywhere.
+2. **Report**: which files conflicted, which upstream commit introduced the change, and the
+   one command that reproduces the conflict for manual resolution.
+
+Abort rather than leaving the rebase in progress. A half-rebased repository -- detached
+HEAD, "rebase in progress", markers on disk -- is a trap for whoever opens it next, who may
+not be the person who resolves it. Reproducing it costs one command.
+
+If an `--autostash` pop conflicts, treat it as class C, and **name the stash** in your
+report so the work is not lost.
 
 ---
 
