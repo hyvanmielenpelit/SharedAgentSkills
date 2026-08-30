@@ -2,17 +2,38 @@
 
 # Global Claude Code Rules
 
-These rules apply globally to all Claude Code sessions across projects.
+Claude Code additions to the shared baseline. The baseline itself is imported separately
+as `@rules/AGENTS.md` and is not repeated here.
 
-## Global Rules Baseline
+## Scratch Files
 
-- **Scratch Files**: Never write temporary files, scripts, or test data to the repository root. Use the session scratchpad directory. The only permitted in-tree location for AI documents is `.plans/`.
-- **Git Operations**: Never run `git commit` or `git push` unless explicitly asked by the user.
-- **Windows Environment**: Default to PowerShell. Do not assume Unix tools exist (`grep`, `sed`, `awk`, `file`, etc.). Avoid PowerShell 5.1 language traps (`&&`, `||`, `?:`, `??`, `?.`).
-- **Encodings**: Write files in UTF-8 without BOM. When modifying files, preserve the existing line ending style (CRLF / LF).
+Claude Code has no `brain/` directory. Use the **session scratchpad directory Claude Code
+reports in its own environment**. The baseline rule still binds: never write temporary
+files anywhere inside a repository, except `.plans/`.
 
-## Global Skills
+## Globally Installed Skills
 
-The following shared skills are installed globally and available to all sessions:
-- `powershell-agent-guidelines`: Windows PowerShell syntax rules, escaping, JSON serialization, and file I/O best practices.
-- `agent-implementation-planning`: Standard multi-phase implementation planning lifecycle, subagent constraints, and `.plans/` artifact conventions. Project-specific planning rules override this baseline wherever they differ.
+Shared, both harnesses:
+
+- `agent-implementation-planning` -- the planning lifecycle, plan template, `.plans/`
+  naming and versioning, follow-up rounds, research isolation.
+- `agent-subagent-guidelines` -- the mandatory Subagent Use section, model tiers and how
+  to resolve them, file-level exclusivity, protecting uncommitted changes.
+- `agent-powershell-guidelines` -- Windows and PowerShell 5.1 syntax, encoding, line
+  endings, non-interactive execution.
+
+Claude Code only:
+
+- `claude-plan-mode` -- how plan mode reconciles with `.plans/`, and `ExitPlanMode`.
+- `claude-code-conventions` -- resolving a tier here, the spawn boundary, agent types, and
+  the `.claude/skills/` pointer-stub contract.
+
+A project's own skills override these wherever they differ.
+
+## Editing the Shared Rules
+
+`rules/AGENTS.md` reaches Claude Code through a live junction, so an edit takes effect
+immediately. It reaches Antigravity as an **inlined copy** that does not.
+
+**If you edit `rules/AGENTS.md` or `rules/GEMINI.md`, tell the user to run
+`.\setup.ps1` in `SharedAgentSkills`**, or Antigravity keeps reading the old text.

@@ -95,6 +95,51 @@ def validate_rules(repo_root: Path) -> bool:
     return success
 
 
+MODEL_NAME_REGEX = re.compile("(?<![A-Za-z0-9_./-])(Opus|Sonnet|Haiku|Gemini|Flash|GPT)(?![A-Za-z0-9_./-])", re.IGNORECASE)
+
+# Directories whose skills are linked into a single harness. Each may carry at
+# most one concrete model mention, as a parenthetical hint.
+HARNESS_SKILL_DIRS = ("skills-claude", "skills-gemini")
+
+RULES_MAX_BYTES = 3 * 1024
+
+
+def check_no_model_names(path: Path, allowance: int) -> bool:
+    """Tier-to-model mappings must not be written down: rosters change and this
+    repository has no review cadence. Tiers are resolved at runtime against the
+    models a session actually offers."""
+    text = path.read_text(encoding="utf-8")
+    hits = MODEL_NAME_REGEX.findall(text)
+    if len(hits) > allowance:
+        print(
+            f"FAIL [Model Names]: {path} mentions {len(hits)} concrete model name(s) "
+            f"({', '.join(sorted(set(hits)))}); at most {allowance} allowed here. "
+            f"State the selection rule and let the session resolve it.",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
+def validate_rules_size(repo_root: Path) -> bool:
+    """Rules files load into every context window in every project, so they are
+    capped. Anything longer belongs in a triggered skill."""
+    success = True
+    for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md"):
+        path = repo_root / "rules" / name
+        if not path.exists():
+            continue
+        size = path.stat().st_size
+        if size > RULES_MAX_BYTES:
+            print(
+                f"FAIL [Rules Size]: {path} is {size} bytes (cap {RULES_MAX_BYTES}). "
+                f"Move the excess into a triggered skill.",
+                file=sys.stderr,
+            )
+            success = False
+    return success
+
+
 def validate_skill(skill_dir: Path) -> bool:
     success = True
     dir_name = skill_dir.name
@@ -159,39 +204,83 @@ def validate_skill(skill_dir: Path) -> bool:
 
 def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
-    skills_dir = repo_root / "skills"
 
-    if not skills_dir.exists() or not skills_dir.is_dir():
-        print(f"FAIL: Skills directory not found at {skills_dir}", file=sys.stderr)
+    skill_trees = [
+        (repo_root / "skills", 0),
+        (repo_root / "skills-claude", 3),
+        (repo_root / "skills-gemini", 3),
+    ]
+
+    if not (repo_root / "skills").is_dir():
+        print(f"FAIL: Skills directory not found at {repo_root / 'skills'}", file=sys.stderr)
         return 1
 
     all_ok = True
 
-    # Validate rules
     if not validate_rules(repo_root):
         all_ok = False
 
-    # Validate PS1 files for ASCII only and no BOM
+    if not validate_rules_size(repo_root):
+        all_ok = False
+
+    # rules/AGENTS.md is the neutral baseline: no model name at all. The harness rules
+    # files may name the other application when stating what is deliberately not
+    # installed -- enough for a sentence, not enough for a roster.
+    for name, allowance in (("AGENTS.md", 0), ("CLAUDE.md", 2), ("GEMINI.md", 2)):
+        rule_path = repo_root / "rules" / name
+        if rule_path.exists() and not check_no_model_names(rule_path, allowance):
+            all_ok = False
+
     for ps1 in repo_root.glob("*.ps1"):
         if not check_no_bom(ps1) or not check_ascii_only(ps1):
             all_ok = False
-
-    # Validate skills
-    skill_dirs = [d for d in skills_dir.iterdir() if d.is_dir()]
-    if not skill_dirs:
-        print(f"FAIL: No skills found under {skills_dir}", file=sys.stderr)
-        return 1
-
-    for s_dir in skill_dirs:
-        if not validate_skill(s_dir):
+    for ps1 in (repo_root / "tools").glob("*.ps1"):
+        if not check_no_bom(ps1) or not check_ascii_only(ps1):
             all_ok = False
 
-    if all_ok:
-        print(f"OK: Validated {len(skill_dirs)} skills and all rules successfully.")
-        return 0
-    else:
-        print("FAIL: Validation errors encountered.", file=sys.stderr)
+    total = 0
+    seen_names: dict = {}
+    for tree, model_allowance in skill_trees:
+        if not tree.is_dir():
+            continue
+        for s_dir in sorted(d for d in tree.iterdir() if d.is_dir()):
+            total += 1
+            if not validate_skill(s_dir):
+                all_ok = False
+            skill_md = s_dir / "SKILL.md"
+            if skill_md.exists() and not check_no_model_names(skill_md, model_allowance):
+                all_ok = False
+            if s_dir.name in seen_names:
+                print(
+                    f"FAIL [Namespace]: skill '{s_dir.name}' exists in both "
+                    f"'{seen_names[s_dir.name]}' and '{tree.name}'.",
+                    file=sys.stderr,
+                )
+                all_ok = False
+            else:
+                seen_names[s_dir.name] = tree.name
+
+    # A repository-local skill must never shadow a linked one.
+    local_skills = repo_root / ".agents" / "skills"
+    if local_skills.is_dir():
+        for local in local_skills.iterdir():
+            if local.is_dir() and local.name in seen_names:
+                print(
+                    f"FAIL [Never-Linked]: repository-local skill '{local.name}' "
+                    f"shadows the linked skill in '{seen_names[local.name]}'.",
+                    file=sys.stderr,
+                )
+                all_ok = False
+
+    if total == 0:
+        print("FAIL: No skills found.", file=sys.stderr)
         return 1
+
+    if all_ok:
+        print(f"OK: Validated {total} skills and all rules successfully.")
+        return 0
+    print("FAIL: Validation errors encountered.", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":

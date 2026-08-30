@@ -1,3 +1,8 @@
+# Tracked and intentional, despite looking like agent config:
+#   .agents/  .claude/   repository-local rules; NEVER linked by setup.ps1
+#   docs/                human-facing guidance
+# Only .plans/ is ignored: it holds AI-produced planning documents.
+
 .vs/
 .idea/
 .DS_Store
@@ -5,3 +10,4 @@ Thumbs.db
 scratch/
 tmp/
 .plans/
+__pycache__/

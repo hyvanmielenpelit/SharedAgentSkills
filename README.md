@@ -1,6 +1,10 @@
 # SharedAgentSkills
 
-A centralized repository of shared skills, rules, and best practices for AI coding agents across multiple developer harnesses, including **Google Antigravity / Gemini Agents** and **Anthropic Claude Code**.
+Shared rules and skills for AI coding agents across two harnesses on Windows:
+**Google Antigravity / Gemini** and **Anthropic Claude Code**.
+
+New here? Read [docs/ai-skill-management.md](docs/ai-skill-management.md) — it is
+the guide to where guidance belongs and how it reaches each harness.
 
 ---
 
@@ -8,108 +12,134 @@ A centralized repository of shared skills, rules, and best practices for AI codi
 
 ```text
 SharedAgentSkills/
-├── .github/
-│   └── workflows/
-│       └── validate-skills.yml            # CI validation workflow
+├── skills/            # LINKED to both harnesses
+├── skills-claude/     # LINKED to Claude Code only
+├── skills-gemini/     # LINKED to Antigravity only
 ├── rules/
-│   ├── AGENTS.md                          # Tool-neutral global baseline rules
-│   └── CLAUDE.md                          # Claude Code global configuration & import sentinel
-├── skills/
-│   ├── agent-implementation-planning/     # Project-neutral planning lifecycle baseline
-│   │   └── SKILL.md
-│   └── powershell-agent-guidelines/       # Windows & PowerShell execution guidelines
-│       └── SKILL.md
+│   ├── AGENTS.md      # neutral baseline - reaches BOTH harnesses
+│   ├── CLAUDE.md      # Claude Code only
+│   └── GEMINI.md      # Antigravity only
+├── docs/              # NEVER LINKED - human-facing guidance
+├── .agents/           # NEVER LINKED - rules for editing THIS repository
+├── .claude/           # NEVER LINKED - Claude adapter for the above
 ├── tools/
-│   └── validate_skills.py                 # Skill specification and formatting validator
-├── .editorconfig                          # Enforces line endings, indentation, and no BOM
-├── .gitattributes                         # Git text attribute configuration
-├── .gitignore                             # Ignores IDE and transient files
-├── README.md                              # This document
-├── setup.ps1                              # Idempotent Windows bootstrap script
-└── sync.ps1                               # Fast-forward sync and rule refresh script
+│   ├── validate_skills.py   # frontmatter, naming, no-model-names, size caps
+│   └── sync_stubs.ps1       # regenerate a project repo's .claude/ stubs
+├── setup.ps1          # idempotent bootstrap; -DryRun and -Prune
+└── sync.ps1           # git pull --ff-only, then setup.ps1
 ```
+
+> [!IMPORTANT]
+> `.agents/`, `.claude/`, `docs/`, and `.plans/` are **never** linked, copied, or
+> inlined into any harness configuration. Only `skills/`, `skills-claude/`,
+> `skills-gemini/`, and `rules/` are distributed.
+
+### The placement matrix
+
+|  | Both harnesses | Claude Code only | Antigravity only |
+|---|---|---|---|
+| **Always-on rules** | `rules/AGENTS.md` | `rules/CLAUDE.md` | `rules/GEMINI.md` |
+| **Triggered skills** | `skills/` | `skills-claude/` | `skills-gemini/` |
 
 ---
 
-## Installation & Setup
+## Installation
 
-### Windows (Automated)
-
-Run the bootstrap script from PowerShell:
+### Windows
 
 ```powershell
 .\setup.ps1
 ```
 
-To see what the script will do without making changes:
+Preview without writing anything:
 
 ```powershell
-.\setup.ps1 -DryRun
+.\setup.ps1 -DryRun -Prune
 ```
 
-#### What `setup.ps1` Does
+`setup.ps1`:
 
-1. **Claude Code Discovery**:
-   - Creates `~/.claude/skills/` as a real directory (if absent).
-   - Creates NTFS directory junctions pointing each shared skill (`~/.claude/skills/<skill>`) to this repository.
-   - Creates an NTFS junction for `~/.claude/rules` pointing to `SharedAgentSkills\rules`.
-   - Adds a marked import (`@rules/CLAUDE.md`) in `~/.claude/CLAUDE.md`.
-2. **Antigravity Discovery**:
-   - Creates `~/.gemini/config/skills/` as a real directory (if absent).
-   - Creates NTFS directory junctions pointing each shared skill (`~/.gemini/config/skills/<skill>`) to this repository. This mounts skills under **Global Discovery (Priority 3)**, higher than built-in defaults.
-   - Updates `~/.gemini/config/AGENTS.md` by regenerating the inlined global rules from `rules/AGENTS.md` between marked delimiters (`<!-- BEGIN SharedAgentSkills -->` and `<!-- END SharedAgentSkills -->`), preserving any existing rules outside the markers.
+1. Creates NTFS junctions from each source directory into the harness
+   directories it is routed to (`~/.claude/skills/`,
+   `~/.gemini/config/skills/`), and junctions `rules/` into `~/.claude/rules`.
+2. Regenerates the marked region of `~/.claude/CLAUDE.md` to import
+   `@rules/AGENTS.md` and `@rules/CLAUDE.md`, backing the file up first, and
+   asserts exactly one marked region survives.
+3. Inlines `rules/AGENTS.md` followed by `rules/GEMINI.md` into
+   `~/.gemini/config/AGENTS.md` between the same markers, preserving anything
+   outside them.
+4. With `-Prune`, removes junctions pointing at skills of this repository that no
+   longer exist (after a rename or deletion). Scoped to targets under this
+   repository, so nothing installed from elsewhere is touched.
 
-### Linux / macOS (POSIX)
-
-On POSIX platforms, symlink each skill and include the rule files:
+### Linux / macOS
 
 ```bash
-# Claude Code
-mkdir -p ~/.claude/skills
-ln -s "$(pwd)/skills/powershell-agent-guidelines" ~/.claude/skills/
-ln -s "$(pwd)/skills/agent-implementation-planning" ~/.claude/skills/
+mkdir -p ~/.claude/skills ~/.gemini/config/skills
+for d in skills/*/ skills-claude/*/; do ln -s "$(pwd)/${d%/}" ~/.claude/skills/; done
+for d in skills/*/ skills-gemini/*/; do ln -s "$(pwd)/${d%/}" ~/.gemini/config/skills/; done
 ln -s "$(pwd)/rules" ~/.claude/rules
-
-# Antigravity / Gemini
-mkdir -p ~/.gemini/config/skills
-ln -s "$(pwd)/skills/powershell-agent-guidelines" ~/.gemini/config/skills/
-ln -s "$(pwd)/skills/agent-implementation-planning" ~/.gemini/config/skills/
 ```
+
+Then add `@rules/AGENTS.md` and `@rules/CLAUDE.md` to `~/.claude/CLAUDE.md`, and
+inline `rules/AGENTS.md` + `rules/GEMINI.md` into `~/.gemini/config/AGENTS.md`.
 
 ---
 
-## Synchronization
+## Live vs. copied
 
-To pull updates from the remote repository and refresh global rules on Windows:
+> [!WARNING]
+> **Everything Claude Code reads is live. Antigravity's *rules* are a copy.**
+>
+> Skills reach both harnesses by junction, so editing a file inside an existing
+> skill takes effect immediately, on every session, before any commit.
+>
+> `rules/AGENTS.md` and `rules/GEMINI.md` reach Antigravity as an **inlined
+> copy**. Antigravity keeps reading the previous text until `setup.ps1` or
+> `sync.ps1` runs again. This is the most common source of "why is Gemini
+> ignoring my rule".
+>
+> Adding, renaming, or deleting a skill directory also needs a re-run — with
+> `-Prune` for a rename or deletion.
+
+---
+
+## Updating
 
 ```powershell
 .\sync.ps1
 ```
 
-`sync.ps1` runs `git pull --ff-only` and re-executes `setup.ps1` to ensure all junctions are healthy and the latest rules in `rules/AGENTS.md` are refreshed into `~/.gemini/config/AGENTS.md`.
+Fast-forward pull, then re-runs `setup.ps1` so junctions are repaired and the
+inlined rules are refreshed.
 
 ---
 
-## Antigravity `skills.json` Fallback
+## Contributing
 
-Antigravity also supports declaring skills via `skills.json`. While directory junctions in `~/.gemini/config/skills/` are preferred for local discovery (Priority 3), `skills.json` can be used:
+1. **Placement** — pick a cell from the matrix above. The two tests are in
+   [docs/ai-skill-management.md](docs/ai-skill-management.md); the precedents for
+   harness-specific content are in
+   [docs/harness-matrix.md](docs/harness-matrix.md).
+2. **Naming** — kebab-case directory matching `^[a-z0-9]+(-[a-z0-9]+)*$`; `name:`
+   in the frontmatter must equal the directory. Prefix `agent-` for shared,
+   `claude-` / `gemini-` for harness-specific.
+3. **Description** — 40 to 1024 characters, written to describe **trigger
+   conditions**. It is what both harnesses index to decide whether to load the
+   skill.
+4. **No model names.** Tiers are roles, resolved by each session against the
+   models it actually offers. The validator rejects concrete model names in
+   `skills/` and `rules/`.
+5. **Encoding** — UTF-8 without BOM; LF line endings (`.editorconfig`); `.ps1`
+   files ASCII-only for Windows PowerShell 5.1.
+6. **Validate** before submitting:
 
-1. When the repository is cloned directly inside the user's home directory (e.g. `~/SharedAgentSkills`), where `{"entries":[{"path":"~/SharedAgentSkills/skills"}]}` avoids junctions.
-2. In project-level repositories committed as `.agents/skills.json` referencing workspace-relative paths.
+   ```powershell
+   python tools/validate_skills.py
+   ```
 
----
+   And, for a project repository's pointer stubs:
 
-## Contribution & Skill Guidelines
-
-1. **Skill Directory & Naming**:
-   - Skill folder names **must be kebab-case** matching `^[a-z0-9]+(-[a-z0-9]+)*$` (e.g. `my-awesome-skill`).
-   - The `name:` field in `SKILL.md` frontmatter **must exactly match the folder name**.
-   - The `description:` field must be between 40 and 1024 characters and clearly describe trigger conditions.
-2. **Encodings & Line Endings**:
-   - All files must be saved in **UTF-8 without BOM**.
-   - Scripts (`.ps1`) must contain **ASCII-only** characters to ensure compatibility with Windows PowerShell 5.1 parsers.
-3. **Local Validation**:
-   - Run the validator before submitting changes:
-     ```powershell
-     python tools/validate_skills.py
-     ```
+   ```powershell
+   .\tools\sync_stubs.ps1 -Repo C:\path\to\repo -Check
+   ```

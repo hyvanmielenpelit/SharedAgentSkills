@@ -29,3 +29,7 @@ jobs:
       - name: Run skill validation
         run: |
           python tools/validate_skills.py
+
+      # Project repositories are not checked out here, so stub pairing is a
+      # local / pre-commit check:
+      #   .	ools\sync_stubs.ps1 -Repo <path> -Check

@@ -1,10 +1,22 @@
 [CmdletBinding()]
 param(
-    [switch]$DryRun
+    [switch]$DryRun,
+    [switch]$Prune
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = $PSScriptRoot
+
+# Source directory -> harness routing. A skill directory is linked only into the
+# harness(es) marked $true here.
+$Routes = @(
+    [PSCustomObject]@{ Source = 'skills';        Claude = $true;  Gemini = $true  },
+    [PSCustomObject]@{ Source = 'skills-claude'; Claude = $true;  Gemini = $false },
+    [PSCustomObject]@{ Source = 'skills-gemini'; Claude = $false; Gemini = $true  }
+)
+
+# Never linked, never copied, never inlined into any harness configuration.
+$NeverLinked = @('.agents', '.claude', 'docs', '.plans', 'tools')
 
 Write-Host "=================================================="
 Write-Host " SharedAgentSkills Bootstrap Setup"
@@ -12,6 +24,16 @@ Write-Host "=================================================="
 if ($DryRun) {
     Write-Host "[DRY RUN MODE] No changes will be written to disk." -ForegroundColor Yellow
 }
+
+Write-Host ""
+Write-Host "Routing:" -ForegroundColor Cyan
+foreach ($r in $Routes) {
+    $c = if ($r.Claude) { 'yes' } else { 'no ' }
+    $g = if ($r.Gemini) { 'yes' } else { 'no ' }
+    Write-Host ("  {0,-16} -> Claude: {1}   Gemini: {2}" -f $r.Source, $c, $g)
+}
+Write-Host ("  NEVER LINKED:    {0}" -f ($NeverLinked -join ', ')) -ForegroundColor DarkGray
+Write-Host ""
 
 $actions = @()
 
@@ -31,6 +53,7 @@ function Log-Action {
     $color = switch ($Status) {
         'Created'  { 'Green' }
         'Updated'  { 'Green' }
+        'Removed'  { 'Yellow' }
         'Skipped'  { 'Cyan' }
         'Aborted'  { 'Red' }
         default    { 'White' }
@@ -57,7 +80,7 @@ function Ensure-Junction {
         [string]$LinkPath,
         [string]$TargetPath
     )
-    
+
     if (-not (Test-Path -LiteralPath $TargetPath)) {
         Log-Action 'Junction' $LinkPath 'Aborted' "Target directory does not exist: $TargetPath"
         return
@@ -66,13 +89,12 @@ function Ensure-Junction {
     if (Test-Path -LiteralPath $LinkPath) {
         $item = Get-Item -LiteralPath $LinkPath -Force
         $isReparse = [bool]($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)
-        
+
         if ($isReparse) {
             $currentTarget = $item.Target
-            # Normalize paths for comparison
             $normCurrent = if ($currentTarget) { (Resolve-Path $currentTarget).Path.TrimEnd('\') } else { '' }
             $normDesired = (Resolve-Path $TargetPath).Path.TrimEnd('\')
-            
+
             if ($normCurrent -eq $normDesired) {
                 Log-Action 'Junction' $LinkPath 'Skipped' 'Junction already points to correct target'
                 return
@@ -86,7 +108,6 @@ function Ensure-Junction {
                 }
             }
         } else {
-            # Real directory
             $childCount = (Get-ChildItem -LiteralPath $LinkPath -Force).Count
             if ($childCount -gt 0) {
                 Log-Action 'Junction' $LinkPath 'Aborted' "Path is a non-empty real directory. Manual review required."
@@ -114,10 +135,93 @@ function Ensure-Junction {
     }
 }
 
+# Remove junctions under a harness skills directory whose target resolves under
+# this repository but no longer exists (a renamed or deleted shared skill).
+# Scoped to targets under $repoRoot, so a skill installed from another source is
+# never touched.
+function Remove-OrphanJunctions {
+    param([string]$HarnessSkillsDir)
+
+    if (-not (Test-Path -LiteralPath $HarnessSkillsDir)) { return }
+
+    $entries = Get-ChildItem -LiteralPath $HarnessSkillsDir -Force -ErrorAction SilentlyContinue
+    foreach ($entry in $entries) {
+        $isReparse = [bool]($entry.Attributes -band [System.IO.FileAttributes]::ReparsePoint)
+        if (-not $isReparse) { continue }
+
+        $target = $entry.Target
+        if (-not $target) { continue }
+        if ($target -is [array]) { $target = $target[0] }
+
+        # Only consider junctions that point into this repository.
+        if (-not $target.TrimEnd('\').StartsWith($repoRoot.TrimEnd('\'), [System.StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+
+        if (Test-Path -LiteralPath $target) { continue }
+
+        if ($DryRun) {
+            Log-Action 'Prune' $entry.FullName 'Removed' "Would remove orphan junction -> $target"
+        } else {
+            [System.IO.Directory]::Delete($entry.FullName)
+            Log-Action 'Prune' $entry.FullName 'Removed' "Removed orphan junction -> $target"
+        }
+    }
+}
+
+# Replace the contents of the single marked region, or append one if absent.
+# Idempotent against a region that already holds different content, and collapses
+# any duplicate regions down to one.
+function Set-MarkedRegion {
+    param(
+        [string]$Text,
+        [string]$Body
+    )
+
+    $begin = '<!-- BEGIN SharedAgentSkills -->'
+    $end = '<!-- END SharedAgentSkills -->'
+    $desired = "$begin`r`n$Body`r`n$end"
+    $pattern = '(?s)<!-- BEGIN SharedAgentSkills -->.*?<!-- END SharedAgentSkills -->'
+
+    $first = [regex]::Match($Text, $pattern)
+    if (-not $first.Success) {
+        if ([string]::IsNullOrWhiteSpace($Text)) {
+            return $desired + "`r`n"
+        }
+        return $Text.TrimEnd() + "`r`n`r`n" + $desired + "`r`n"
+    }
+
+    $result = $Text.Substring(0, $first.Index) + $desired + $Text.Substring($first.Index + $first.Length)
+
+    # Collapse any further regions.
+    while (([regex]::Matches($result, $pattern)).Count -gt 1) {
+        $extra = ([regex]::Matches($result, $pattern))[1]
+        $result = $result.Remove($extra.Index, $extra.Length)
+    }
+
+    return $result
+}
+
+function Assert-SingleRegion {
+    param(
+        [string]$Path
+    )
+    if ($DryRun) { return }
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    $text = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
+    $pattern = '(?s)<!-- BEGIN SharedAgentSkills -->.*?<!-- END SharedAgentSkills -->'
+    $count = ([regex]::Matches($text, $pattern)).Count
+    if ($count -ne 1) {
+        throw "Expected exactly one SharedAgentSkills marked region in $Path but found $count."
+    }
+}
+
 $userHome = [System.Environment]::GetFolderPath('UserProfile')
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
+# ---------------------------------------------------------------------------
 # 1. Claude Code Discovery
+# ---------------------------------------------------------------------------
 $claudeDir = Join-Path $userHome '.claude'
 $claudeSkillsDir = Join-Path $claudeDir 'skills'
 $claudeRulesDir = Join-Path $claudeDir 'rules'
@@ -127,57 +231,9 @@ $claudeBackupDir = Join-Path $claudeDir 'backups'
 Ensure-Directory $claudeDir
 Ensure-Directory $claudeSkillsDir
 
-# Junction each skill in skills/
-$skillsSourceDir = Join-Path $repoRoot 'skills'
-if (Test-Path -LiteralPath $skillsSourceDir) {
-    $skills = Get-ChildItem -LiteralPath $skillsSourceDir -Directory
-    foreach ($skill in $skills) {
-        $dest = Join-Path $claudeSkillsDir $skill.Name
-        Ensure-Junction -LinkPath $dest -TargetPath $skill.FullName
-    }
-}
-
-# Junction rules
-$rulesSourceDir = Join-Path $repoRoot 'rules'
-if (Test-Path -LiteralPath $rulesSourceDir) {
-    Ensure-Junction -LinkPath $claudeRulesDir -TargetPath $rulesSourceDir
-}
-
-# Claude Code CLAUDE.md include
-$claudeBlock = @'
-<!-- BEGIN SharedAgentSkills -->
-@rules/CLAUDE.md
-<!-- END SharedAgentSkills -->
-'@
-
-if (-not (Test-Path -LiteralPath $claudeMdFile)) {
-    if ($DryRun) {
-        Log-Action 'File' $claudeMdFile 'Created' 'Would create ~/.claude/CLAUDE.md with shared import block'
-    } else {
-        [System.IO.File]::WriteAllText($claudeMdFile, $claudeBlock, $utf8NoBom)
-        Log-Action 'File' $claudeMdFile 'Created' 'Created ~/.claude/CLAUDE.md with shared import block'
-    }
-} else {
-    $existingText = [System.IO.File]::ReadAllText($claudeMdFile, [System.Text.Encoding]::UTF8)
-    if ($existingText -notmatch '<!-- BEGIN SharedAgentSkills -->') {
-        if ($DryRun) {
-            Log-Action 'File' $claudeMdFile 'Updated' 'Would append shared import block'
-        } else {
-            Ensure-Directory $claudeBackupDir
-            $stamp = (Get-Date).ToString('yyyyMMddHHmmss')
-            $backupFile = Join-Path $claudeBackupDir "CLAUDE.md.$stamp.bak"
-            [System.IO.File]::WriteAllText($backupFile, $existingText, $utf8NoBom)
-            
-            $newText = $existingText.TrimEnd() + "`r`n`r`n" + $claudeBlock + "`r`n"
-            [System.IO.File]::WriteAllText($claudeMdFile, $newText, $utf8NoBom)
-            Log-Action 'File' $claudeMdFile 'Updated' "Appended import block (backup saved to $backupFile)"
-        }
-    } else {
-        Log-Action 'File' $claudeMdFile 'Skipped' 'Import block already present in ~/.claude/CLAUDE.md'
-    }
-}
-
+# ---------------------------------------------------------------------------
 # 2. Antigravity Discovery
+# ---------------------------------------------------------------------------
 $geminiConfigDir = Join-Path $userHome '.gemini\config'
 $geminiSkillsDir = Join-Path $geminiConfigDir 'skills'
 $geminiAgentsMd = Join-Path $geminiConfigDir 'AGENTS.md'
@@ -186,65 +242,135 @@ $geminiBackupDir = Join-Path $geminiConfigDir 'backups'
 Ensure-Directory $geminiConfigDir
 Ensure-Directory $geminiSkillsDir
 
-if (Test-Path -LiteralPath $skillsSourceDir) {
-    $skills = Get-ChildItem -LiteralPath $skillsSourceDir -Directory
+# Prune orphans before linking, so a rename is a remove-then-create rather than
+# leaving a junction to a target that no longer exists.
+if ($Prune) {
+    Remove-OrphanJunctions $claudeSkillsDir
+    Remove-OrphanJunctions $geminiSkillsDir
+}
+
+# Link each source directory into the harnesses it is routed to.
+foreach ($route in $Routes) {
+    $sourceDir = Join-Path $repoRoot $route.Source
+    if (-not (Test-Path -LiteralPath $sourceDir)) { continue }
+
+    $skills = Get-ChildItem -LiteralPath $sourceDir -Directory
     foreach ($skill in $skills) {
-        $dest = Join-Path $geminiSkillsDir $skill.Name
-        Ensure-Junction -LinkPath $dest -TargetPath $skill.FullName
+        if ($route.Claude) {
+            Ensure-Junction -LinkPath (Join-Path $claudeSkillsDir $skill.Name) -TargetPath $skill.FullName
+        }
+        if ($route.Gemini) {
+            Ensure-Junction -LinkPath (Join-Path $geminiSkillsDir $skill.Name) -TargetPath $skill.FullName
+        }
     }
 }
 
-# Inlined Antigravity rules regeneration
+# Warn if a skill name appears in more than one source directory, or shadows a
+# repository-local skill.
+$seen = @{}
+foreach ($route in $Routes) {
+    $sourceDir = Join-Path $repoRoot $route.Source
+    if (-not (Test-Path -LiteralPath $sourceDir)) { continue }
+    foreach ($skill in (Get-ChildItem -LiteralPath $sourceDir -Directory)) {
+        if ($seen.ContainsKey($skill.Name)) {
+            Write-Host ("[WARN] Skill '{0}' exists in both '{1}' and '{2}'." -f $skill.Name, $seen[$skill.Name], $route.Source) -ForegroundColor Red
+        } else {
+            $seen[$skill.Name] = $route.Source
+        }
+    }
+}
+$localSkillsDir = Join-Path $repoRoot '.agents\skills'
+if (Test-Path -LiteralPath $localSkillsDir) {
+    foreach ($local in (Get-ChildItem -LiteralPath $localSkillsDir -Directory)) {
+        if ($seen.ContainsKey($local.Name)) {
+            Write-Host ("[WARN] Repository-local skill '{0}' shadows a linked skill of the same name." -f $local.Name) -ForegroundColor Red
+        }
+    }
+}
+
+# Junction the rules directory for Claude Code.
+$rulesSourceDir = Join-Path $repoRoot 'rules'
+if (Test-Path -LiteralPath $rulesSourceDir) {
+    Ensure-Junction -LinkPath $claudeRulesDir -TargetPath $rulesSourceDir
+}
+
+# Claude Code import block. Both the neutral baseline and the Claude-only rules
+# are imported; rules/GEMINI.md is deliberately not.
+$claudeBody = "@rules/AGENTS.md`r`n@rules/CLAUDE.md"
+
+if (-not (Test-Path -LiteralPath $claudeMdFile)) {
+    if ($DryRun) {
+        Log-Action 'File' $claudeMdFile 'Created' 'Would create ~/.claude/CLAUDE.md with shared import block'
+    } else {
+        [System.IO.File]::WriteAllText($claudeMdFile, (Set-MarkedRegion -Text '' -Body $claudeBody), $utf8NoBom)
+        Log-Action 'File' $claudeMdFile 'Created' 'Created ~/.claude/CLAUDE.md with shared import block'
+    }
+} else {
+    $existingText = [System.IO.File]::ReadAllText($claudeMdFile, [System.Text.Encoding]::UTF8)
+    $updatedText = Set-MarkedRegion -Text $existingText -Body $claudeBody
+
+    if ($updatedText -eq $existingText) {
+        Log-Action 'File' $claudeMdFile 'Skipped' 'Import block already up to date'
+    } else {
+        if ($DryRun) {
+            Log-Action 'File' $claudeMdFile 'Updated' 'Would regenerate the marked import block'
+        } else {
+            Ensure-Directory $claudeBackupDir
+            $stamp = (Get-Date).ToString('yyyyMMddHHmmss')
+            $backupFile = Join-Path $claudeBackupDir "CLAUDE.md.$stamp.bak"
+            [System.IO.File]::WriteAllText($backupFile, $existingText, $utf8NoBom)
+            [System.IO.File]::WriteAllText($claudeMdFile, $updatedText, $utf8NoBom)
+            Log-Action 'File' $claudeMdFile 'Updated' "Regenerated import block (backup saved to $backupFile)"
+        }
+    }
+}
+Assert-SingleRegion $claudeMdFile
+
+# Antigravity inlined rules: the neutral baseline followed by the Gemini-only
+# additions. This is a COPY, not a link, so it goes stale until setup runs again.
 $agentsRuleFile = Join-Path $repoRoot 'rules\AGENTS.md'
+$geminiRuleFile = Join-Path $repoRoot 'rules\GEMINI.md'
+
 if (Test-Path -LiteralPath $agentsRuleFile) {
     $ruleContent = [System.IO.File]::ReadAllText($agentsRuleFile, [System.Text.Encoding]::UTF8).Trim()
-    $markedRegion = "<!-- BEGIN SharedAgentSkills -->`r`n$ruleContent`r`n<!-- END SharedAgentSkills -->"
-    
-    if (Test-Path -LiteralPath $geminiAgentsMd) {
+    if (Test-Path -LiteralPath $geminiRuleFile) {
+        $geminiContent = [System.IO.File]::ReadAllText($geminiRuleFile, [System.Text.Encoding]::UTF8).Trim()
+        $ruleContent = $ruleContent + "`r`n`r`n" + $geminiContent
+    }
+
+    if (-not (Test-Path -LiteralPath $geminiAgentsMd)) {
+        if ($DryRun) {
+            Log-Action 'File' $geminiAgentsMd 'Created' 'Would create ~/.gemini/config/AGENTS.md with inlined rules'
+        } else {
+            [System.IO.File]::WriteAllText($geminiAgentsMd, (Set-MarkedRegion -Text '' -Body $ruleContent), $utf8NoBom)
+            Log-Action 'File' $geminiAgentsMd 'Created' 'Created ~/.gemini/config/AGENTS.md with inlined rules'
+        }
+    } else {
         $existingAgentsText = [System.IO.File]::ReadAllText($geminiAgentsMd, [System.Text.Encoding]::UTF8)
-        $pattern = '(?s)<!-- BEGIN SharedAgentSkills -->.*?<!-- END SharedAgentSkills -->'
-        
-        if ($existingAgentsText -match $pattern) {
-            $updatedAgentsText = [System.Text.RegularExpressions.Regex]::Replace($existingAgentsText, $pattern, $markedRegion)
-            if ($updatedAgentsText -eq $existingAgentsText) {
-                Log-Action 'File' $geminiAgentsMd 'Skipped' 'Inlined rules are already up to date'
-            } else {
-                if ($DryRun) {
-                    Log-Action 'File' $geminiAgentsMd 'Updated' 'Would regenerate inlined rules in marked region'
-                } else {
-                    Ensure-Directory $geminiBackupDir
-                    $stamp = (Get-Date).ToString('yyyyMMddHHmmss')
-                    $backupFile = Join-Path $geminiBackupDir "AGENTS.md.$stamp.bak"
-                    [System.IO.File]::WriteAllText($backupFile, $existingAgentsText, $utf8NoBom)
-                    [System.IO.File]::WriteAllText($geminiAgentsMd, $updatedAgentsText, $utf8NoBom)
-                    Log-Action 'File' $geminiAgentsMd 'Updated' "Regenerated inlined rules (backup saved to $backupFile)"
-                }
-            }
+        $updatedAgentsText = Set-MarkedRegion -Text $existingAgentsText -Body $ruleContent
+
+        if ($updatedAgentsText -eq $existingAgentsText) {
+            Log-Action 'File' $geminiAgentsMd 'Skipped' 'Inlined rules are already up to date'
         } else {
             if ($DryRun) {
-                Log-Action 'File' $geminiAgentsMd 'Updated' 'Would append marked inlined rules block'
+                Log-Action 'File' $geminiAgentsMd 'Updated' 'Would regenerate inlined rules in marked region'
             } else {
                 Ensure-Directory $geminiBackupDir
                 $stamp = (Get-Date).ToString('yyyyMMddHHmmss')
                 $backupFile = Join-Path $geminiBackupDir "AGENTS.md.$stamp.bak"
                 [System.IO.File]::WriteAllText($backupFile, $existingAgentsText, $utf8NoBom)
-                
-                $updatedAgentsText = $existingAgentsText.TrimEnd() + "`r`n`r`n" + $markedRegion + "`r`n"
                 [System.IO.File]::WriteAllText($geminiAgentsMd, $updatedAgentsText, $utf8NoBom)
-                Log-Action 'File' $geminiAgentsMd 'Updated' "Appended inlined rules block (backup saved to $backupFile)"
+                Log-Action 'File' $geminiAgentsMd 'Updated' "Regenerated inlined rules (backup saved to $backupFile)"
             }
-        }
-    } else {
-        if ($DryRun) {
-            Log-Action 'File' $geminiAgentsMd 'Created' 'Would create ~/.gemini/config/AGENTS.md with inlined rules'
-        } else {
-            [System.IO.File]::WriteAllText($geminiAgentsMd, $markedRegion + "`r`n", $utf8NoBom)
-            Log-Action 'File' $geminiAgentsMd 'Created' 'Created ~/.gemini/config/AGENTS.md with inlined rules'
         }
     }
 }
+Assert-SingleRegion $geminiAgentsMd
 
 Write-Host "`n=================================================="
 Write-Host " Setup Summary"
 Write-Host "=================================================="
 $script:actions | Format-Table -AutoSize
+
+Write-Host "Reminder: rules/AGENTS.md and rules/GEMINI.md reach Antigravity as an" -ForegroundColor DarkGray
+Write-Host "INLINED COPY. Re-run this script after editing either file." -ForegroundColor DarkGray

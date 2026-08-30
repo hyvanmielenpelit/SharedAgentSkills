@@ -1,5 +1,5 @@
 ---
-name: powershell-agent-guidelines
+name: agent-powershell-guidelines
 description: >-
   Guidelines and best practices for executing PowerShell commands, running scratch scripts,
   and handling file I/O safely on Windows for AI agents. Covers quoting, exit codes,
@@ -107,7 +107,7 @@ Under PowerShell 7 (`Core`) every restriction in this section is lifted, and sev
   - Prefix with the call operator `&` when the executable path is quoted or stored in a variable:
     ```powershell
     & "C:\Program Files\dotnet\dotnet.exe" build
-    & $msbuildPath win\win32\vs\makedefsdroid.vcxproj
+    & $msbuildPath build\tools\Generator.vcxproj
     ```
   - Without `&`, PowerShell treats the quoted string as a literal and outputs the text instead of running the program.
 - **Multi-line arguments to native executables — use a here-string.** Commit messages, PR bodies, and file content passed on a command line are the usual cases:
@@ -195,6 +195,11 @@ This is the single most common area where AI agents corrupt files on Windows.
   "CR=$(@($b | Where-Object { $_ -eq 0x0D }).Count) LF=$(@($b | Where-Object { $_ -eq 0x0A }).Count)"
   ```
 
+  Inside a git working tree, `git ls-files --eol <path>` reports both sides at
+  once (`i/` = index, `w/` = working tree). When modifying an **existing** file,
+  match whatever `w/` reports, regardless of the OS; use the OS default only when
+  creating a **new** file, and never mix conventions within one file.
+
 ---
 
 ## 7. Dangerous PowerShell 5.1 Quirks
@@ -266,7 +271,30 @@ Use native PowerShell cmdlets or robust Windows alternatives:
 
 ---
 
-## 10. Harness-Specific Integration
+## 10. Installing Tools -- Ask, Do Not Skip
+
+When a task needs a tool, package, or library that is not installed, **ask the user
+whether to install it.** Do not silently drop the step, weaken the approach, or
+substitute a worse method to avoid the install.
+
+- **Ask; do not install unprompted.** Installing changes the user's machine, so it is
+  their decision -- but it is a decision they must actually be given.
+- **Do not quietly work around a missing tool.** Skipping a verification step, replacing a
+  real parser with a regex heuristic, or downgrading a check to "probably fine" produces
+  weaker work while looking complete. That is worse than pausing to ask.
+- **Say what is missing and what it buys.** Name the tool, the command that would install
+  it, and what becomes possible with it. "PyYAML is not installed -- with it I can
+  actually parse every frontmatter block instead of pattern-matching them; install with
+  `python -m pip install pyyaml`?"
+- **If the user declines**, proceed with the best available approach and **state plainly
+  in the final report** which check was weakened or skipped, and how.
+- **Prefer project-local and already-declared dependencies.** If the tool belongs in
+  `package.json` or a `.csproj`, adding it there is a project change and needs a plan, not
+  just an install.
+
+---
+
+## 11. Harness-Specific Integration
 
 ### Harness: Claude Code
 
@@ -286,7 +314,7 @@ Use native PowerShell cmdlets or robust Windows alternatives:
 5. **Encoding Defaults:**
    - Claude Code pre-sets `$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'`.
 
-### Harness: Antigravity / Gemini
+### Harness: Antigravity
 
 1. **Scratch Scripts:**
    - Save temporary files and scratch scripts to `<appDataDir>\brain\<conversation-id>\scratch\`.
