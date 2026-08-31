@@ -4,9 +4,11 @@ description: >-
   Claude Code specifics for subagents and project skill wiring. Covers resolving an
   abstract model tier against the models this session offers, the boundary that Claude Code
   can spawn only Claude models and cannot reach another vendor's, agent types Explore and
-  Plan and general-purpose versus model tier, and the .claude/skills pointer-stub contract
-  where the stub description is what Claude Code indexes for triggering. Read before
-  spawning a subagent or adding a skill to a project repository.
+  Plan and general-purpose versus model tier, the .claude/skills pointer-stub contract
+  where the stub description is what Claude Code indexes for triggering, and how to report
+  a plan or other document as a clickable link the desktop app opens in its own viewer
+  rather than as a bare path. Read before spawning a subagent, reporting a document, or
+  adding a skill to a project repository.
 ---
 
 # Claude Code Conventions
@@ -128,3 +130,36 @@ The plans root sits outside the project directory, so a session needs it granted
 > It would hand every session write access to repositories it is not working in, to serve a
 > path that only matters when the plans repository is already broken. A refused
 > cross-repository write is a **tier 3** condition: keep the plan in the chat and say so.
+
+---
+
+## Linking a Document the User Should Open
+
+`agent-implementation-planning` requires every document you write to be reported as a
+**clickable link**, never a bare path. Here the mechanism is Markdown link syntax: Claude
+Code renders it as a link, and the desktop app opens the file in its own embedded viewer.
+
+- **Href: the path relative to the working directory.** The plans root is normally a
+  sibling of the repository, so a tier 1 document is linked as
+  `../plans/<organization>/<repository>/YYYY-MM-DD/task_name/implementation_plan_v1.md`.
+  A tier 2 document in the working repository's own `.plans/` is a plain relative path.
+- **Use the absolute path as the href when the document is not under a relative path from
+  here** -- a plans root resolved from `AGENT_PLANS_ROOT`, or a main repository elsewhere
+  on the machine.
+- **Link text is the document name and version** (`implementation_plan_v1.md`). Print the
+  full absolute path in plain text as well, so it can be copied into another session.
+- **Link the canonical copy, not the harness's own plan file.** Under plan mode
+  `~/.claude/plans/<slug>.md` is a working copy; the link the user should click is the one
+  in the plans repository (or, at tier 2, the main repository's `.plans/`). Print the
+  harness path as plain text if it is worth mentioning at all.
+
+**`SendUserFile`, in sessions that have it**, presents the file itself in the app's side
+panel instead of only making it reachable. Use it *in addition to* the links when the user
+should read the document now -- one call carrying every document of the round, not one per
+save, and never as a substitute for the canonical path.
+
+> [!CAUTION]
+> **Do not use the `Artifact` tool for a plan, review, walkthrough, or `task.md`.** It
+> publishes a hosted page to claude.ai, which is an outward-facing publish of internal
+> planning material and happens only if the user asks for it. The plans repository is the
+> canonical location, and the link the user needs is a local one.

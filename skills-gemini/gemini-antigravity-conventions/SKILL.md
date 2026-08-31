@@ -3,11 +3,12 @@ name: gemini-antigravity-conventions
 description: >-
   Antigravity Standalone App specifics. Covers delivering plans and reports to the artifact
   directory while copying them to the shared plans repository, adding that directory as a
-  project folder, implementing a plan authored in another
-  application, resolving an abstract model tier against the models this session offers, the
-  boundary that this app can spawn only its own vendor's models, skill discovery and the
-  skills.json fallback, why .agents/ is canonical and .claude/ is not, and checking whether
-  the inlined global rules have gone stale. Read when planning or implementing here.
+  project folder, implementing a plan authored in another application, reporting each
+  document as a clickable link the artifact viewer opens rather than as a bare path,
+  resolving an abstract model tier against the models this session offers, the boundary
+  that this app can spawn only its own vendor's models, skill discovery and the skills.json
+  fallback, why .agents/ is canonical and .claude/ is not, and checking whether the inlined
+  global rules have gone stale. Read when planning or implementing here.
 ---
 
 # Antigravity Conventions
@@ -28,7 +29,8 @@ canonical document lives in the shared `plans` repository. **Both receive the fi
 2. **Copy it** to
    `<plans-root>/<organization>/<repository>/YYYY-MM-DD/task_name/<document_name>_v<N>.md`.
 3. **Commit the round** in the plans repository, per `agent-implementation-planning`.
-4. **Present the artifact and wait for approval** before editing any project file.
+4. **Present the artifact, link every document of the round, and wait for approval**
+   before editing any project file. See Linking the documents you wrote below.
 
 > [!IMPORTANT]
 > **Steps 2 and 3 apply to tier 1 only.** `agent-implementation-planning` decides the tier
@@ -54,6 +56,23 @@ granting that prompt is the fix.
 > fallback case -- see `agent-implementation-planning` for which tier applies. A tier 2
 > copy goes to the **main** repository's `.plans/`, never to whichever repository happens
 > to be writable.
+
+### Linking the documents you wrote
+
+`agent-implementation-planning` requires every document to reach the user as a **clickable
+link that opens it in this application's own artifact viewer**, never as a bare path.
+
+- **The artifact in the artifact directory** is delivered through the app's artifact
+  mechanism -- that is what step 1 above is for, and it is the copy the user reads.
+- **Link the plans repository copy as well**, as a Markdown link whose href is the path
+  relative to the workspace. This works *because* `C:\hmp\plans` is a project folder; if
+  it was never added, the app cannot open the file and the link is dead -- one more reason
+  for the requirement above. If the plans root is outside every project folder, give the
+  absolute path and say the file has to be opened manually.
+- **Link text is the document name and version** (`implementation_plan_v2.md`); give the
+  full path in plain text too, so it can be copied into another session or application.
+- **Link every document of the round** -- plan, `task.md`, walkthrough, review -- and
+  confirm each file is on disk before posting its link.
 
 Scope directories, naming, `_v<N>` versioning and harmonization, follow-up rounds, the
 commit protocol, the fallback, and the plan template are all in

@@ -7,8 +7,9 @@ description: >-
   organization/repository scope directories, harmonized _v<N> versioning, the
   commit-and-push protocol, the allowed-organization list that decides whether a plan
   may be stored at all, the gitignored .plans/ fallback and the chat-only tier below it,
-  follow-up rounds, progress tracking, walkthroughs, and research isolation. Read before
-  starting any multi-file or cross-layer task.
+  follow-up rounds, progress tracking, walkthroughs, reporting every document to the user
+  as a clickable link that opens in the application's own viewer, and research isolation.
+  Read before starting any multi-file or cross-layer task.
 ---
 
 # Agent Implementation Planning Workflow
@@ -83,7 +84,8 @@ graph TD
 ### Phase 3 -- Obtain User Approval
 
 - **STOP and wait for explicit user approval before editing any project file.**
-- Always print the plan's file path so the user can review it.
+- **Report the plan as a clickable link**, not a bare path, so the user can open it in
+  the application's own viewer -- see Reporting a Document to the User.
 - Use the harness's approval mechanism where one exists; otherwise print a concise
   summary and wait. **Approval is never skipped.**
 
@@ -645,9 +647,9 @@ implied.
 
 **Four things are mandatory, and the first is the one that matters:**
 
-1. **Say so in chat, in the same message that reports the plan's path.** Name the reason
-   and the intended destination. A fallback nobody is told about is indistinguishable from
-   the old, broken arrangement:
+1. **Say so in chat, in the same message that reports the plan's link and path.** Name the
+   reason and the intended destination. A fallback nobody is told about is
+   indistinguishable from the old, broken arrangement:
 
    > The plans repository at `C:\hmp\plans` does not exist, so this plan was written to
    > `C:\hmp\GnollHack\.plans\2026-08-30\sso_login\implementation_plan_v1.md`, which is
@@ -756,8 +758,8 @@ place -- it never looks inside a harness-private directory it does not share.
 **As soon as the plan is finished, and immediately before requesting approval.** The copy
 is part of delivering the plan, not part of executing it.
 
-Order: finish writing -> **copy to the plans repository** -> commit the round -> print the
-path -> request approval.
+Order: finish writing -> **copy to the plans repository** -> commit the round -> post the
+clickable link and the path -> request approval.
 
 > [!NOTE]
 > **This copy does not violate a harness "no other file edits" restriction.** Such
@@ -777,6 +779,42 @@ path -> request approval.
 The exact reconciliation -- which private file or artifact directory your harness uses,
 how approval is requested, and which research agents it prescribes -- is in your harness's
 own skill, one of which is installed for you. Do not guess at another harness's mechanics.
+
+---
+
+## Reporting a Document to the User
+
+Every document you produce -- an implementation plan, a review, a walkthrough, a bug
+report, a `task.md` -- is reported as a **clickable link that opens the file in the
+application's own viewer**. A plain-text path is not a report: it hands the user a string
+to hunt with, when the application they are already looking at can open the document.
+
+**Mandatory, every time a document is written or revised:**
+
+1. **Post a clickable link for each document of the round**, using the mechanism this
+   application actually makes clickable. Your harness's own skill names it -- do not
+   invent one, and do not fall back to a bare path because linking looked uncertain.
+2. **Label the link with the document name and version** (`implementation_plan_v2.md`),
+   not with the whole path. Give the full path in plain text as well, on the same line or
+   the next: the link is for opening the document, the path is for copying it into another
+   session and for showing which storage tier it landed in.
+3. **Link every document of the round**, not just the plan. A set announced as three files
+   and linked as one leaves two of them unread.
+4. **Post a fresh link on every revision.** `_v3` is a new file, so the `_v2` link no
+   longer points at the current document.
+5. **Verify the file exists at that path before linking it.** A dead link is worse than a
+   path, because the user finds out by clicking.
+
+> [!IMPORTANT]
+> **The link is local.** It opens a file on this machine, in the desktop application's
+> embedded viewer. Do **not** publish a plan, review, or walkthrough to an external
+> hosting or sharing service in order to produce a link -- that is an outward-facing
+> publish of internal planning material, and it happens only if the user asks for it.
+
+All three storage tiers are covered. Under **tier 2** the link points into the main
+repository's `.plans/`, and the message still says the document is local to this machine.
+Under **tier 3** there is no file, so there is no link: the plan is in the conversation,
+and saying so is the report.
 
 ---
 
@@ -806,6 +844,10 @@ Update it as you work through each step.
 After completing all work, create `walkthrough.md` summarizing: which plan version was
 implemented, what changed (with file references), what was tested, validation results,
 and remaining follow-up items.
+
+Report it the same way as the plan: a clickable link, plus the path -- see Reporting a
+Document to the User. The walkthrough is the document the user is most likely to actually
+open, and it arrives at the moment the session looks finished.
 
 ---
 

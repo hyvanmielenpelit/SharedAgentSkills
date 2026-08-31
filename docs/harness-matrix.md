@@ -41,6 +41,7 @@ it is a competing procedure for the same task, not just a different tool name.
 | C10 | Claude Code pre-sets `$PSDefaultParameterValues['Out-File:Encoding']`; the session runs `Bypass`; only cwd persists | `agent-powershell-guidelines` section 10 | **Inlined** — one line each |
 | C11 | Claude Code has no `brain/` directory; use the session scratchpad it reports | `rules/CLAUDE.md` | Always-relevant fact, not a procedure |
 | C12 | `~/.claude/skills/` discovery and the `@rules/...` import mechanism | `docs/`, plus one line in `rules/CLAUDE.md` | Installation detail, not task guidance |
+| C13 | How a document becomes a clickable link here: Markdown link syntax, href relative to the working directory (`../plans/...`), `SendUserFile` as the side-panel presentation, and the `Artifact` tool ruled out because it publishes to claude.ai | `claude-code-conventions` | Names Claude Code tools and its own link rendering. The shared requirement (never a bare path) stays in `agent-implementation-planning` |
 
 ## Antigravity / Gemini
 
@@ -54,6 +55,7 @@ it is a competing procedure for the same task, not just a different tool name.
 | G6 | Execution-policy check before falling back to `powershell.exe -ExecutionPolicy Bypass` | `agent-powershell-guidelines` section 10 | **Inlined** |
 | G7 | `.agents/` is canonical; `.claude/` in a project is an adapter layer, not content | `gemini-antigravity-conventions` + `docs/` | Tells a Gemini session which tree to trust |
 | G8 | `~/.gemini/config/AGENTS.md` is an **inlined copy** regenerated between markers; re-run `setup.ps1` after any rules change | `rules/GEMINI.md` + `gemini-antigravity-conventions` (self-check) + `docs/` warning box | The highest-likelihood failure in the whole system |
+| G9 | How a document becomes a clickable link here: the artifact directory copy is delivered through the app's artifact mechanism, and the plans repository copy is linked workspace-relative — which only resolves because `C:\hmp\plans` is a project folder | `gemini-antigravity-conventions` | The mirror of C13, and the second reason the project folder is mandatory |
 
 ---
 
@@ -67,6 +69,7 @@ it is a competing procedure for the same task, not just a different tool name.
 | Tier **names** and selection criteria | Roles, not model names — each harness skill supplies the resolution rule |
 | File-level exclusivity, protecting uncommitted changes, build-boundary sequencing | Coordination rules |
 | Everything in `agent-powershell-guidelines` sections 1-9 | Windows and PowerShell 5.1 behaviour, identical under both |
+| Every document reported as a clickable link that opens in the application's own viewer, never a bare path; link the whole round; re-link on every `_v<N>` | The requirement is universal — only the mechanism that makes a link clickable differs, and C13/G9 supply it |
 
 ---
 
