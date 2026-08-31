@@ -32,7 +32,7 @@ canonical document lives in the shared `plans` repository. **Both receive the fi
 
 > [!IMPORTANT]
 > **Steps 2 and 3 apply to tier 1 only.** `agent-implementation-planning` decides the tier
-> before you write anything: under **tier 2** the copy goes to the working repository's
+> before you write anything: under **tier 2** the copy goes to the main repository's
 > gitignored `.plans/` and nothing is committed; under **tier 3** there is no copy at all
 > and the plan lives in the conversation. Step 1 and step 4 are unchanged in all three.
 
@@ -51,8 +51,9 @@ granting that prompt is the fix.
 > The grant is for the **plans directory itself**. Never open or grant access to its
 > parent -- that holds every repository on the machine plus unrelated data, and an agent
 > must not be handed it. A **denied** prompt is not a reason to ask again: it is a
-> fallback case. Write to the working repository's `.plans/`, say so in chat, and record
-> the intended scope in the document.
+> fallback case -- see `agent-implementation-planning` for which tier applies. A tier 2
+> copy goes to the **main** repository's `.plans/`, never to whichever repository happens
+> to be writable.
 
 Scope directories, naming, `_v<N>` versioning and harmonization, follow-up rounds, the
 commit protocol, the fallback, and the plan template are all in
@@ -66,7 +67,7 @@ This is the common case: plans are frequently written in the other application a
 implemented here.
 
 - Read the **latest `_v<N>`** for the specific task you are continuing -- in the plans
-  repository first, then the working repository's `.plans/`. Do not browse other task
+  repository first, then the main repository's `.plans/`. Do not browse other task
   directories, do not read another repository's scope, and do not read superseded versions
   unless asked.
 - **If the plan is ambiguous, ask rather than improvise.** The planning session's context

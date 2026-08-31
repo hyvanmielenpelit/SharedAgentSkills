@@ -118,5 +118,13 @@ The plans root sits outside the project directory, so a session needs it granted
   directory specifically and nothing above it -- never grant the parent that holds every
   repository on the machine.
 - **One-off:** `/add-dir` in the session.
-- **Refused or unavailable:** that is a fallback case. Write to the working repository's
-  `.plans/`, say so in chat, and record the intended scope in the document.
+- **Refused or unavailable:** that is a fallback case -- see
+  `agent-implementation-planning` for which tier applies.
+
+> [!CAUTION]
+> **The grant is `../plans` and stays that way.** A tier 2 fallback writes into the **main**
+> repository's `.plans/`, which may be a sibling project repository this session was never
+> granted. **Do not add project repositories to `additionalDirectories` to make that work.**
+> It would hand every session write access to repositories it is not working in, to serve a
+> path that only matters when the plans repository is already broken. A refused
+> cross-repository write is a **tier 3** condition: keep the plan in the chat and say so.

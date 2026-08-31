@@ -241,19 +241,25 @@ plan.** A reader cannot otherwise tell whether a plan is shared, local, or ephem
 | Tier | Where | When |
 |------|-------|------|
 | **1. Plans repository** | `<plans-root>/<organization>/<repository>/YYYY-MM-DD/task_name/` | The work is about one or more repositories in an allowed organization, and the root resolves |
-| **2. Gitignored `.plans/`** | `<repository-root>/.plans/YYYY-MM-DD/task_name/` | Tier 1 does not apply, **and** Git confirms `.plans/` is ignored in that repository |
+| **2. Gitignored `.plans/`** | `<main-repository-root>/.plans/YYYY-MM-DD/task_name/` | Tier 1 does not apply, **and** Git confirms `.plans/` is ignored **in the main repository** |
 | **3. Chat only** | Nowhere on disk | Neither of the above. Write the plan into the conversation and create no file |
 
 #### Determining the organization
 
-Read it from the remote; do not infer it from the folder name, which proves nothing --
-clones get renamed, and the scope must match the GitHub path it claims:
+Read it from **the main repository's** remote; do not infer it from a folder name, which
+proves nothing -- clones get renamed, and the scope must match the GitHub path it claims:
 
 ```powershell
-git -C <repository> remote get-url origin
+git -C <main-repository> remote get-url origin
 ```
 
 The organization is the path segment before the repository name.
+
+> **One choice, three consequences.** The main repository chosen by the scope rules above is
+> the same repository that decides the scope path, decides eligibility here, and provides the
+> tier 2 fallback below. It is **not** necessarily the repository your session is running
+> in. Reading one repository's remote and filing under another produces a path that mirrors
+> nothing.
 
 - **Forks.** If `origin` is not in an allowed organization but an `upstream` remote is, use
   **`upstream`** for the scope. That is where the work is destined, and it is the normal
@@ -385,7 +391,7 @@ convention is for personal drafts, not for scratch scripts.
 ### Finding an existing task
 
 When picking up work someone else planned, look in the **plans repository first**, then
-the working repository's `.plans/`. A document may legitimately be in either, and a
+the main repository's `.plans/`. A document may legitimately be in either, and a
 fallback document says so in its own header.
 
 ### Line endings
@@ -625,7 +631,7 @@ Two different conditions land here, and they are handled identically:
 2. **The repository is not eligible** -- it is outside every allowed organization, or it
    has no remote, or the work belongs to no repository at all.
 
-In both cases, **write to the working repository's `.plans/` instead** -- the pre-existing
+In both cases, **write to the main repository's `.plans/` instead** -- the pre-existing
 layout, unchanged -- **but only if Git confirms it is ignored** (`git check-ignore -q
 .plans`). If it is not ignored, this section does not apply: go to **tier 3** and keep the
 plan in the chat, creating no file anywhere.
@@ -653,9 +659,9 @@ implied.
    whoever finds it next:
 
    ```markdown
-   > **Fallback location.** Written to `.plans/` on 2026-08-30 because the plans
-   > repository could not be reached (not cloned). Intended scope:
-   > `hyvanmielenpelit/GnollHack`. Move to
+   > **Fallback location.** This is a tier 2 document: written to `.plans/` on 2026-08-30
+   > because the plans repository could not be reached (not cloned), and therefore visible
+   > only on this machine. Scope: `hyvanmielenpelit/GnollHack`. Move to
    > `<plans-root>/hyvanmielenpelit/GnollHack/2026-08-30/sso_login/` when access is
    > restored.
    ```
@@ -671,10 +677,38 @@ implied.
    to commit; if that tempts you toward `git add -f`, stop. A fallback round ends with
    files on disk and an explanation in chat, and nothing else.
 
-**Which `.plans/` to use.** The repository you are working in. If the work belongs to
-another repository entirely, still use the current repository's `.plans/` and let the
-recorded intended scope carry the truth -- and confirm that repository's `.plans/` is
-ignored, not the other one's.
+**Which `.plans/` to use.** The **main repository's** -- the one the scope names -- not the
+one your session happens to be running in. Confirm the precondition against that repository:
+
+```powershell
+git -C <main-repository> check-ignore -q .plans
+```
+
+A plan about `GnollHack` sitting in `SharedAgentSkills/.plans/` is findable only by someone
+who knows it was written from the wrong chair. The same plan in `GnollHack/.plans/` is where
+a GnollHack developer would look.
+
+**When the main repository's `.plans/` is unusable**, three conditions, all treated alike:
+
+| Condition | Why it happens |
+|-----------|----------------|
+| The main repository is **not checked out** on this machine | Planning work for a repository you have not cloned |
+| `git check-ignore -q .plans` **fails** there | Every upstream repository, and several of our own |
+| The session **cannot write** to that path | It is outside the directories this session was granted |
+
+All three go to **tier 3**.
+
+> [!IMPORTANT]
+> **Do not substitute the working repository's `.plans/`.** It is right there, it is
+> writable, and using it reintroduces exactly the mismatch this rule removes -- a plan filed
+> under a repository it is not about -- at the moment nobody is watching. A plan in the
+> conversation is honest about being nowhere; a plan in the wrong repository looks filed.
+
+> [!CAUTION]
+> **Do not ask for wider directory access to reach another repository.** A tier 2 fallback
+> only matters when the plans repository is already broken, and it is not worth granting a
+> session write access to repositories it is not working in. A refused write is a tier 3
+> condition, not a permissions problem to solve.
 
 **Version numbers.** Determine `_v<N>` from whichever locations you can read. If the plans
 repository is unreachable you cannot see versions that live there, so continue from the
@@ -682,8 +716,10 @@ highest version visible in `.plans/` and **say that the number may need correcti
 the two are reconciled.
 
 **Reconciliation.** At the start of a planning session, if the plans repository *is*
-reachable and the working repository's `.plans/` is non-empty, mention it once and offer to
-move the documents. **Do not move them unattended:** those directories also hold
+reachable and the `.plans/` of the repository you are working in is non-empty, mention it
+once and offer to move the documents. That is the one you can see cheaply; strays may also
+sit in another repository's `.plans/`, and they surface the same way when someone next works
+there. **Do not move them unattended:** those directories also hold
 pre-migration history that was deliberately left behind, and publishing it is the user's
 decision.
 
@@ -709,7 +745,7 @@ the harness permits.
 A harness may keep its own private plan file or artifact directory. Treat that as a
 **working copy**. The canonical document is always the one in
 `<plans-root>/<organization>/<repository>/YYYY-MM-DD/task_name/` -- or, when the fallback
-is in play, in the working repository's `.plans/`.
+is in play, in the main repository's `.plans/`.
 
 This matters because agents hand work to each other. A different agent picking up the task
 reads the **latest `_v<N>`** from there and writes its next revision back to the same

@@ -25,8 +25,9 @@ loads into every context window.
   `<root>/<organization>/<repository>/YYYY-MM-DD/task_name/`. Resolve `<root>` as
   `AGENT_PLANS_ROOT`, else `C:\hmp\plans`, else a `plans` directory beside your
   repository; never create it.
-- **Otherwise** use the repository's `.plans/`, and **only if `git check-ignore -q .plans`
-  succeeds**. If it does not, keep the plan in the chat and write no file.
+- **Otherwise** use the **main** repository's `.plans/`, and only if
+  `git check-ignore -q .plans` succeeds there. If it does not, keep the plan in the chat
+  and write no file.
 - **Say which of the three applies.**
 
 ## Environment Constraints
