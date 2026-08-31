@@ -28,7 +28,7 @@ loads into every context window.
 - **Otherwise** use the **main** repository's `.plans/`, and only if
   `git check-ignore -q .plans` succeeds there. If it does not, keep the plan in the chat
   and write no file.
-- **Say which of the three applies**, and link each document, never a bare path.
+- **Say which of the three applies**; link each document by absolute path, never bare.
 
 ## Environment Constraints
 

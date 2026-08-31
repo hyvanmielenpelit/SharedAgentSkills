@@ -139,13 +139,20 @@ The plans root sits outside the project directory, so a session needs it granted
 **clickable link**, never a bare path. Here the mechanism is Markdown link syntax: Claude
 Code renders it as a link, and the desktop app opens the file in its own embedded viewer.
 
-- **Href: the path relative to the working directory.** The plans root is normally a
-  sibling of the repository, so a tier 1 document is linked as
-  `../plans/<organization>/<repository>/YYYY-MM-DD/task_name/implementation_plan_v1.md`.
-  A tier 2 document in the working repository's own `.plans/` is a plain relative path.
-- **Use the absolute path as the href when the document is not under a relative path from
-  here** -- a plans root resolved from `AGENT_PLANS_ROOT`, or a main repository elsewhere
-  on the machine.
+- **Href: the absolute path, for every document in the plans repository.** The plans root
+  is outside the repository you are working in, so a working-directory-relative href like
+  `../plans/...` resolves only when the working directory is exactly what you assumed --
+  it works in some sessions and dies in others, which is the intermittent dead link users
+  report. Link a tier 1 document as
+  `C:/hmp/plans/<organization>/<repository>/YYYY-MM-DD/task_name/implementation_plan_v1.md`,
+  with the real root substituted. A tier 2 `.plans/` in a main repository elsewhere on the
+  machine is absolute for the same reason.
+- **Write the href with forward slashes.** Markdown treats `\` as an escape character, so
+  a native `C:\hmp\plans\...` href is not reliably a path any more. `C:/hmp/plans/...`
+  is the same file and survives rendering; give the backslash form in the plain-text path
+  if that is what the user will paste into PowerShell.
+- **Relative hrefs are only for files inside the working repository** -- source files you
+  cite, and a tier 2 `.plans/` in the repository you are actually working in.
 - **Link text is the document name and version** (`implementation_plan_v1.md`). Print the
   full absolute path in plain text as well, so it can be copied into another session.
 - **Link the canonical copy, not the harness's own plan file.** Under plan mode

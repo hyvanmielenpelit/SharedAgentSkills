@@ -794,15 +794,23 @@ to hunt with, when the application they are already looking at can open the docu
 1. **Post a clickable link for each document of the round**, using the mechanism this
    application actually makes clickable. Your harness's own skill names it -- do not
    invent one, and do not fall back to a bare path because linking looked uncertain.
-2. **Label the link with the document name and version** (`implementation_plan_v2.md`),
-   not with the whole path. Give the full path in plain text as well, on the same line or
-   the next: the link is for opening the document, the path is for copying it into another
-   session and for showing which storage tier it landed in.
-3. **Link every document of the round**, not just the plan. A set announced as three files
+2. **Make the href an absolute path, not a relative one.** A relative href resolves
+   against whatever the application treats as the current directory, and the plans
+   repository is *outside* the repository you are working in -- a sibling, another drive,
+   or a root resolved from `AGENT_PLANS_ROOT`. Relative hrefs into it open in some
+   sessions and silently fail in others, which is the intermittent dead link users
+   actually hit. An absolute path resolves the same way every time. The only documents
+   that may be linked relative are the ones **inside** the repository you are working in
+   -- a tier 2 `.plans/` there.
+3. **Label the link with the document name and version** (`implementation_plan_v2.md`),
+   not with the whole path. Give the full absolute path in plain text as well, on the same
+   line or the next: the link is for opening the document, the path is for copying it into
+   another session and for showing which storage tier it landed in.
+4. **Link every document of the round**, not just the plan. A set announced as three files
    and linked as one leaves two of them unread.
-4. **Post a fresh link on every revision.** `_v3` is a new file, so the `_v2` link no
+5. **Post a fresh link on every revision.** `_v3` is a new file, so the `_v2` link no
    longer points at the current document.
-5. **Verify the file exists at that path before linking it.** A dead link is worse than a
+6. **Verify the file exists at that path before linking it.** A dead link is worse than a
    path, because the user finds out by clicking.
 
 > [!IMPORTANT]
@@ -812,7 +820,8 @@ to hunt with, when the application they are already looking at can open the docu
 > publish of internal planning material, and it happens only if the user asks for it.
 
 All three storage tiers are covered. Under **tier 2** the link points into the main
-repository's `.plans/`, and the message still says the document is local to this machine.
+repository's `.plans/` -- absolute as well, unless that repository *is* the one you are
+working in -- and the message still says the document is local to this machine.
 Under **tier 3** there is no file, so there is no link: the plan is in the conversation,
 and saying so is the report.
 

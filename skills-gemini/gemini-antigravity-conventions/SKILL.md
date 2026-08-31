@@ -64,13 +64,18 @@ link that opens it in this application's own artifact viewer**, never as a bare 
 
 - **The artifact in the artifact directory** is delivered through the app's artifact
   mechanism -- that is what step 1 above is for, and it is the copy the user reads.
-- **Link the plans repository copy as well**, as a Markdown link whose href is the path
-  relative to the workspace. This works *because* `C:\hmp\plans` is a project folder; if
-  it was never added, the app cannot open the file and the link is dead -- one more reason
-  for the requirement above. If the plans root is outside every project folder, give the
-  absolute path and say the file has to be opened manually.
+- **Link the plans repository copy as well**, as a Markdown link whose href is the
+  **absolute** path -- `C:/hmp/plans/<organization>/.../implementation_plan_v2.md`, with
+  forward slashes, because Markdown treats `\` as an escape character. A
+  workspace-relative href resolves against whichever workspace root the app picks and
+  fails intermittently; an absolute one does not. Opening it still requires
+  `C:\hmp\plans` to be a project folder -- if it was never added the app cannot open the
+  file however you write the href, which is one more reason for the requirement above. If
+  the plans root is outside every project folder, give the absolute path and say the file
+  has to be opened manually.
 - **Link text is the document name and version** (`implementation_plan_v2.md`); give the
-  full path in plain text too, so it can be copied into another session or application.
+  full absolute path in plain text too, so it can be copied into another session or
+  application.
 - **Link every document of the round** -- plan, `task.md`, walkthrough, review -- and
   confirm each file is on disk before posting its link.
 

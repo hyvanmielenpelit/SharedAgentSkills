@@ -41,9 +41,11 @@ harness wins** -- and both are satisfiable.
 3. **Commit the planning round** in the plans repository, per
    `agent-implementation-planning`. This happens **after** the copy and **before**
    `ExitPlanMode`, so the plan is already shared when you ask for approval.
-4. **Post a clickable link to the plans repository copy**, plus both paths in plain text
-   and a brief summary -- not the full document. A bare path is not a report; the link
-   mechanism is in `claude-code-conventions` (Linking a Document the User Should Open).
+4. **Post a clickable link to the plans repository copy**, with an **absolute** href --
+   a relative one into the plans root does not reliably resolve -- plus both paths in
+   plain text and a brief summary, not the full document. A bare path is not a report;
+   the link mechanism is in `claude-code-conventions` (Linking a Document the User
+   Should Open).
 5. **Request approval with the `ExitPlanMode` tool.** Do not ask "is this plan okay?" in
    chat text; that is what the tool is for.
 6. **On approval**, create `task.md`, execute, and finish with `walkthrough.md`.
