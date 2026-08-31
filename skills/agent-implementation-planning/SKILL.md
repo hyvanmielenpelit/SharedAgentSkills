@@ -341,10 +341,19 @@ The scope mirrors the GitHub path, so a directory maps one-to-one onto a URL:
 |-----------|-------|
 | One repository | `<organization>/<repository>`, both spelled exactly as on GitHub. The local folder name is not authoritative; the GitHub path is |
 | Several, one clearly main | The main repository's scope. State in the plan's opening paragraph which others are touched and why this one was chosen |
-| Several in one organization, none main | Repository names joined with `_` in **alphabetical order**: `hyvanmielenpelit/GnollHack_MobileGnollHackLogger` |
-| Several spanning organizations, none main | The organization/repository **where the work primarily lands** -- the working tree you actually edit |
+| Several, no clear main | **Pick one** of the best candidates. An arbitrary pick is fine -- say in the plan that it was arbitrary, and list the others |
 | Any repository outside an allowed organization | **Not tier 1.** Use tier 2 or 3, regardless of how the work looks |
 | No repository at all | **Not stored here.** Use tier 2 or 3 |
+
+**Every plan has exactly one scope.** Never combine repository names into a single
+directory (`GnollHack_MobileGnollHackLogger` and the like): it mirrors no GitHub path, so it
+belongs to no repository and is found by nobody looking for either. When two candidates are
+genuinely equal, choosing between them is not worth deliberation -- pick one, and record
+that you did.
+
+**A follow-up round never re-picks.** Rounds `_A`, `_B` and later go in the task directory
+the original round created, whichever scope that was. Re-deciding would split one task
+across two directories, which is the thing this layout exists to prevent.
 
 The plans repository is **not** a special case: plans about it go to
 `hyvanmielenpelit/plans/`, its ordinary location.
