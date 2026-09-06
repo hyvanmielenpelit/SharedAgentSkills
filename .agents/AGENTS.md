@@ -18,7 +18,7 @@
 ## What This Repository Is
 
 A small repository of shared rules and skills for AI coding agents, distributed
-to two harnesses on Windows by NTFS junction and by inlined copy. It is not a
+to two harnesses on Windows by NTFS junction, direct path configuration in skills.json, and by inlined copy. It is not a
 platform. Keep additions proportionate to the content they govern.
 
 ## The Placement Matrix
@@ -77,10 +77,10 @@ Three changes do not take effect until `setup.ps1` runs again:
 | Change | Effect without re-running |
 |--------|---------------------------|
 | Edit `rules/AGENTS.md` or `rules/GEMINI.md` | Antigravity keeps reading the **old** text — it receives an inlined copy, not a link |
-| Add, rename, or move a skill directory | No junction exists, so neither harness can see it |
-| Rename or delete a skill | The old junction survives; run `setup.ps1 -Prune` |
+| Add, rename, or move a skill directory | No configuration exists yet, so neither harness can see it |
+| Rename or delete a skill | The old configuration survives; run `setup.ps1 -Prune` |
 
-Editing a file **inside** an already-junctioned skill is live for both harnesses
+Editing a file **inside** an already-configured skill is live for both harnesses
 and needs nothing. Claude Code reads `rules/` through a live junction, so rules
 edits reach Claude immediately and Antigravity only after a re-run. That
 asymmetry is the most common source of "why is Gemini ignoring my rule".

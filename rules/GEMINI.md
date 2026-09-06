@@ -31,6 +31,8 @@ Antigravity only:
 - `gemini-antigravity-conventions` -- artifact delivery, implementing a plan authored
   elsewhere, resolving a tier here, the spawn boundary, skill discovery, and checking
   whether these inlined rules have gone stale.
+- `gemini-skill-inclusion` -- pattern for registering and including skills in Antigravity via
+  skills.json, workspace discovery, and setup synchronization.
 
 Skills whose names begin with `claude-` exist but are **deliberately not installed here**;
 they describe mechanics this application does not have.

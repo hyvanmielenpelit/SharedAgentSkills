@@ -69,7 +69,7 @@ not.
 
 | | Antigravity / Gemini | Claude Desktop + Claude Code |
 |---|---|---|
-| Shared skills | `~/.gemini/config/skills/` (junction, **live**) | `~/.claude/skills/` (junction, **live**) |
+| Shared skills | `~/.gemini/config/skills.json` (absolute path, **live**) | `~/.claude/skills/` (junction, **live**) |
 | Harness skills | `skills-gemini/*` -> same directory | `skills-claude/*` -> same directory |
 | Neutral rules | `~/.gemini/config/AGENTS.md`, **inlined copy** | `@rules/AGENTS.md`, **live** |
 | Harness rules | `rules/GEMINI.md`, **inlined copy** | `@rules/CLAUDE.md`, **live** |
@@ -84,8 +84,7 @@ not.
 > (or `sync.ps1`) runs and regenerates the inlined region in
 > `~/.gemini/config/AGENTS.md`.
 >
-> This is the most common source of "why is Gemini ignoring my rule". Antigravity's
-> *skills* are junctions and are live; only the rules are copied.
+> **Global skills discovery also differs:** Claude Code automatically follows directory junctions placed under `~/.claude/skills/`. Antigravity requires global skills to be explicitly declared in the `entries` array of `~/.gemini/config/skills.json` using absolute filesystem paths (since its Go runtime does not expand `~` on Windows). Both mechanisms are maintained by `setup.ps1`.
 
 ---
 

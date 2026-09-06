@@ -75,8 +75,8 @@ Preview without writing anything:
 `setup.ps1`:
 
 1. Creates NTFS junctions from each source directory into the harness
-   directories it is routed to (`~/.claude/skills/`,
-   `~/.gemini/config/skills/`), and junctions `rules/` into `~/.claude/rules`.
+   directories it is routed to (e.g. `~/.claude/skills/`), and junctions `rules/` into `~/.claude/rules`.
+   For Antigravity, adds the absolute paths directly into `~/.gemini/config/skills.json`.
 2. Regenerates the marked region of `~/.claude/CLAUDE.md` to import
    `@rules/AGENTS.md` and `@rules/CLAUDE.md`, backing the file up first, and
    asserts exactly one marked region survives.
@@ -106,7 +106,7 @@ inline `rules/AGENTS.md` + `rules/GEMINI.md` into `~/.gemini/config/AGENTS.md`.
 > [!WARNING]
 > **Everything Claude Code reads is live. Antigravity's *rules* are a copy.**
 >
-> Skills reach both harnesses by junction, so editing a file inside an existing
+> Skills reach Claude Code by junction, and Antigravity by absolute paths in `skills.json`, so editing a file inside an existing
 > skill takes effect immediately, on every session, before any commit.
 >
 > `rules/AGENTS.md` and `rules/GEMINI.md` reach Antigravity as an **inlined

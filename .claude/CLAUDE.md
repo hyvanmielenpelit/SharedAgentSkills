@@ -19,8 +19,8 @@ file. Edit them there, not here. This file exists so Claude Code picks them up.
   `tools/*.py`, which stay **LF** because GitHub Actions runs them on Linux.
   Check before writing, and never use `grep`, `head`, or `file` to detect line
   endings — Git Bash strips CR silently.
-- **You are editing the globally installed skills.** `~/.claude/skills/*` and
-  `~/.gemini/config/skills/*` are junctions into this working tree, so an edit to
+- **You are editing the globally installed skills.** `~/.claude/skills/*` are
+  junctions into this working tree, and `~/.gemini/config/skills.json` points to it, so an edit to
   a file inside an existing skill is live for every session on this machine
   immediately — before any commit. What is *not* live: new or renamed skill
   directories (need `setup.ps1`), and `rules/AGENTS.md` / `rules/GEMINI.md` for

@@ -291,18 +291,105 @@ Ensure-Directory $claudeSkillsDir
 # 2. Antigravity Discovery
 # ---------------------------------------------------------------------------
 $geminiConfigDir = Join-Path $userHome '.gemini\config'
-$geminiSkillsDir = Join-Path $geminiConfigDir 'skills'
 $geminiAgentsMd = Join-Path $geminiConfigDir 'AGENTS.md'
 $geminiBackupDir = Join-Path $geminiConfigDir 'backups'
+$geminiSkillsJson = Join-Path $geminiConfigDir 'skills.json'
+
+# Legacy directory, we keep the path variable to prune it from skills.json if it exists
+$geminiSkillsDir = Join-Path $geminiConfigDir 'skills'
 
 Ensure-Directory $geminiConfigDir
-Ensure-Directory $geminiSkillsDir
+
+$geminiSkillPaths = @()
+foreach ($route in $Routes) {
+    if ($route.Gemini) {
+        $sourceDir = Join-Path $repoRoot $route.Source
+        if (Test-Path -LiteralPath $sourceDir) {
+            $geminiSkillPaths += ($sourceDir -replace '\\', '/')
+        }
+    }
+}
+
+$parsedJson = $null
+$existingJsonText = ""
+if (Test-Path -LiteralPath $geminiSkillsJson) {
+    $existingJsonText = [System.IO.File]::ReadAllText($geminiSkillsJson, [System.Text.Encoding]::UTF8)
+    $parsedJson = if ([string]::IsNullOrWhiteSpace($existingJsonText)) { $null } else { $existingJsonText | ConvertFrom-Json }
+}
+
+if (-not $parsedJson) {
+    $parsedJson = [PSCustomObject]@{ entries = @() }
+} elseif (-not $parsedJson.PSObject.Properties['entries']) {
+    $parsedJson | Add-Member -MemberType NoteProperty -Name 'entries' -Value @()
+}
+
+$needsUpdate = $false
+if ($parsedJson.entries) {
+    $oldEntryPath = ($geminiSkillsDir -replace '\\', '/')
+    $cleanEntries = @($parsedJson.entries | Where-Object {
+        $p = if ($_.PSObject.Properties['path']) { $_.path } else { '' }
+        ($p -replace '\\', '/') -ne '~/.gemini/config/skills' -and
+        ($p -replace '\\', '/') -ne $oldEntryPath -and
+        $p -ne $geminiSkillsDir
+    })
+
+    if ($cleanEntries.Count -ne @($parsedJson.entries).Count) {
+        $parsedJson.entries = $cleanEntries
+        $needsUpdate = $true
+    }
+
+    foreach ($entry in $parsedJson.entries) {
+        if ($entry.PSObject.Properties['path']) {
+            $normalizedPath = ($entry.path -replace '\\', '/')
+            if ($entry.path -ne $normalizedPath) {
+                $entry.path = $normalizedPath
+                $needsUpdate = $true
+            }
+        }
+    }
+}
+
+foreach ($path in $geminiSkillPaths) {
+    $entryExists = $false
+    if ($parsedJson.entries) {
+        foreach ($entry in $parsedJson.entries) {
+            if ($entry.PSObject.Properties['path'] -and ($entry.path -replace '\\', '/') -eq $path) {
+                $entryExists = $true
+                break
+            }
+        }
+    }
+    if (-not $entryExists) {
+        $parsedJson.entries += [PSCustomObject]@{ path = $path }
+        $needsUpdate = $true
+    }
+}
+
+if (-not $needsUpdate) {
+    Log-Action 'File' $geminiSkillsJson 'Skipped' 'skills.json already contains required global skill entries'
+} else {
+    if ($DryRun) {
+        Log-Action 'File' $geminiSkillsJson 'Updated' 'Would update global skill entries in skills.json'
+    } else {
+        Ensure-Directory $geminiBackupDir
+        $stamp = (Get-Date).ToString('yyyyMMddHHmmss')
+        $updatedJsonText = $parsedJson | ConvertTo-Json -Depth 100
+
+        if (Test-Path -LiteralPath $geminiSkillsJson) {
+            $backupFile = Join-Path $geminiBackupDir "skills.json.$stamp.bak"
+            [System.IO.File]::WriteAllText($backupFile, $existingJsonText, $utf8NoBom)
+            Log-Action 'File' $geminiSkillsJson 'Updated' "Updated global skill entries in skills.json (backup saved to $backupFile)"
+        } else {
+            Log-Action 'File' $geminiSkillsJson 'Created' "Created skills.json with global skill entries"
+        }
+        [System.IO.File]::WriteAllText($geminiSkillsJson, $updatedJsonText, $utf8NoBom)
+    }
+}
 
 # Prune orphans before linking, so a rename is a remove-then-create rather than
 # leaving a junction to a target that no longer exists.
 if ($Prune) {
     Remove-OrphanJunctions $claudeSkillsDir
-    Remove-OrphanJunctions $geminiSkillsDir
 }
 
 # Link each source directory into the harnesses it is routed to.
@@ -314,9 +401,6 @@ foreach ($route in $Routes) {
     foreach ($skill in $skills) {
         if ($route.Claude) {
             Ensure-Junction -LinkPath (Join-Path $claudeSkillsDir $skill.Name) -TargetPath $skill.FullName
-        }
-        if ($route.Gemini) {
-            Ensure-Junction -LinkPath (Join-Path $geminiSkillsDir $skill.Name) -TargetPath $skill.FullName
         }
     }
 }

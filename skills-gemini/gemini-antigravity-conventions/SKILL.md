@@ -136,15 +136,11 @@ at the Execution Target line as the way to record the intent.
 
 ## Skill Discovery
 
-- Skills mount from `~/.gemini/config/skills/` at **Global Discovery (Priority 3)**, above
-  built-in defaults. Each entry is a junction into the `SharedAgentSkills` working tree, so
-  edits to a file inside an existing skill are live immediately.
-- **`skills.json` fallback** -- skills may also be declared via `skills.json`, which is
-  useful when the repository is cloned inside the home directory, or as a project-level
-  `.agents/skills.json` referencing workspace-relative paths. Directory junctions are
-  preferred where they work.
-- Skills whose names begin with `claude-` are deliberately **not** installed here. They
-  describe mechanics this application does not have.
+- **Global skills require `skills.json`**. Antigravity does not use directory junctions for skills. They must be explicitly declared in the `entries` array of `~/.gemini/config/skills.json` using absolute paths to the source directories.
+- Edits to a file inside an existing skill configured via `skills.json` are live immediately.
+- **Project-level skills** are discovered automatically if placed in `.agents/skills/`, or can be explicitly declared via a workspace-relative `.agents/skills.json`.
+- Skills whose names begin with `claude-` are deliberately **not** installed here. They describe mechanics this application does not have.
+- See the **`gemini-skill-inclusion`** skill for complete architectural details, `skills.json` schemas, and how `setup.ps1` maintains this configuration.
 
 ---
 

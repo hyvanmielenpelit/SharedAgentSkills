@@ -49,8 +49,8 @@ it is a competing procedure for the same task, not just a different tool name.
 |---|---------|-------------|-----|
 | G1 | Plan and report artifacts go to `<appDataDir>/brain/<conversation-id>/` **and** are copied to the plans repository; adding it as a project folder; present the artifact and wait for approval | `gemini-antigravity-conventions` | Competing procedure for plan delivery — the mirror of C1 |
 | G2 | Scratch directory `<appDataDir>\brain\<conversation-id>\scratch\` | `rules/GEMINI.md`, and **inlined** in `agent-powershell-guidelines` section 10 | Always-relevant path. **Was leaking into `rules/AGENTS.md`**, which is supposed to be tool-neutral |
-| G3 | `~/.gemini/config/skills/` mounts skills at Global Discovery Priority 3 | `gemini-antigravity-conventions` + `docs/` | Discovery mechanism |
-| G4 | `skills.json` fallback, and project-level `.agents/skills.json` | `gemini-antigravity-conventions` | Gemini-only mechanism |
+| G3 | `~/.gemini/config/skills.json` explicitly registers absolute paths to the source skill directories | `gemini-antigravity-conventions` + `docs/` | Discovery mechanism |
+| G4 | `skills.json` configuration requirement, and project-level `.agents/skills.json` | `gemini-antigravity-conventions` | Gemini-only mechanism |
 | G5 | Native file tools `write_to_file`, `replace_file_content`, `view_file` | `agent-powershell-guidelines` section 10 | **Inlined** — 3 lines |
 | G6 | Execution-policy check before falling back to `powershell.exe -ExecutionPolicy Bypass` | `agent-powershell-guidelines` section 10 | **Inlined** |
 | G7 | `.agents/` is canonical; `.claude/` in a project is an adapter layer, not content | `gemini-antigravity-conventions` + `docs/` | Tells a Gemini session which tree to trust |
