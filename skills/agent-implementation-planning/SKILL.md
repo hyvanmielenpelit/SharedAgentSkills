@@ -7,9 +7,11 @@ description: >-
   organization/repository scope directories, harmonized _v<N> versioning, the
   commit-and-push protocol, the allowed-organization list that decides whether a plan
   may be stored at all, the gitignored .plans/ fallback and the chat-only tier below it,
-  follow-up rounds, progress tracking, walkthroughs, reporting every document to the user
-  as a clickable link that opens in the application's own viewer, and research isolation.
-  Read before starting any multi-file or cross-layer task.
+  follow-up rounds, progress tracking, walkthroughs and the commit description they
+  carry, the concise code comment style that keeps change narration and rationale out of
+  source files, reporting every document to the user as a clickable link that opens in
+  the application's own viewer, and research isolation. Read before starting any
+  multi-file or cross-layer task.
 ---
 
 # Agent Implementation Planning Workflow
@@ -92,6 +94,8 @@ graph TD
 ### Phase 4 -- Execute
 
 - Implement step-by-step, tracking progress in `task.md`.
+- **Comments you write describe the code as it now stands**, concisely -- never the change
+  or the reason for it. See Code Comment Style.
 - **Subagents edit files; they never build, test, or lint.** The orchestrator runs every
   build, regeneration, and test command itself, at the plan's boundaries, once the
   subagents on the preceding step have all returned. See `agent-subagent-guidelines`.
@@ -103,7 +107,8 @@ graph TD
 - **The orchestrator** runs the tests, builds, and linters and completes the manual
   checks -- never a subagent, and only after every subagent has returned. A result
   produced by a subagent, on a tree that has since changed, is not verification.
-- Create `walkthrough.md` summarizing what changed, what was tested, and the results.
+- Create `walkthrough.md` summarizing what changed, what was tested, and the results,
+  and carrying the commit description for the work.
 
 ---
 
@@ -122,6 +127,41 @@ anything.
 
 This is why plan quality is load-bearing: a well-specified plan makes most
 implementation straightforward, and an underspecified one silently becomes guesswork.
+
+---
+
+## Code Comment Style
+
+A comment describes **the code as it now stands**, for someone opening the file later who
+has no idea a change ever happened. It is not a record of the edit that produced it.
+
+- **Never narrate the change.** No "changed to", "now uses", "previously", "moved here
+  because", "added to fix". The diff already records that, and the comment becomes wrong
+  the moment the next edit lands -- while still reading as authoritative.
+- **Rationale belongs in the commit description**, carried by the walkthrough -- see
+  Commit Description. That is the artifact whose job is to explain *why*; a source file's
+  job is to say what it currently does.
+- **Be brief.** One line where one line does. Do not restate the code in prose, do not
+  summarize a method above itself, and do not explain language or framework behaviour any
+  reader of this codebase already knows.
+- **Match the file you are editing.** Comment density, tone, and format follow the
+  surrounding code, not your own defaults. A sparsely commented file stays sparse.
+- **Keep the comments that earn their place**: a non-obvious invariant, a constraint
+  imposed from outside the file, a workaround and the condition that forces it, a unit, a
+  bound, a reference to a specification or a bug.
+
+```csharp
+// Bad -- narrates the edit, and ages into a lie
+// Switched from the List we had before to a Dictionary, because the linear
+// scan showed up in profiling. Note that this used to return null on a miss.
+
+// Good -- states what holds now
+// Lookup runs once per entity per frame; must stay O(1). Misses throw.
+```
+
+This is not a licence to strip existing commentary. The baseline rule that existing
+comments and documentation are preserved unless the user asks otherwise still applies:
+verbosity is fixed in what you write, never by deleting what someone else wrote.
 
 ---
 
@@ -864,6 +904,34 @@ itself.
 Report it the same way as the plan: a clickable link, plus the path -- see Reporting a
 Document to the User. The walkthrough is the document the user is most likely to actually
 open, and it arrives at the moment the session looks finished.
+
+### Commit Description
+
+The walkthrough also carries a **commit description for the work** -- a ready-to-use
+message for the repository that was changed. This is where the reasoning that must not be
+in the code comments actually lands: why the change was made, what it replaced, which
+alternatives were rejected, and anything a future reader would otherwise have to
+reconstruct from the diff.
+
+Give it as a fenced block, so it can be copied verbatim:
+
+```text
+<area>: <what changed, imperative, one line>
+
+Why: <the problem this solves>
+Approach: <the shape of the change, and any alternative rejected>
+Notes: <regeneration or migration steps, follow-ups, known gaps>
+```
+
+- **Describe the round, not each file.** One block for the work the walkthrough covers; if
+  the user will split it into several commits, give one block per commit and say which
+  files belong to each.
+- **You supply it; you do not run it.** Committing anywhere but the plans repository
+  happens only when the user asks, so present the `git commit` command next to the block
+  in the handoff and stop there.
+- **The plans repository's own commit messages are a different thing** and follow the
+  fixed form in Committing in the Plans Repository. This block is for the project
+  repository.
 
 ---
 

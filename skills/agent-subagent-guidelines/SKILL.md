@@ -7,8 +7,9 @@ description: >-
   subagents and cross-application handoff, file-level exclusivity, the strict rule that
   subagents never build, test, lint, or verify -- the orchestrator owns every such
   command and runs it only after all subagents have returned -- build-boundary
-  sequencing, and protecting uncommitted changes. Read before assigning work to any
-  subagent or writing a plan's Subagent Use section.
+  sequencing, the concise comment style every spawn prompt must state, and protecting
+  uncommitted changes. Read before assigning work to any subagent or writing a plan's
+  Subagent Use section.
 ---
 
 # Subagent and Pair Programming Guidelines
@@ -205,6 +206,18 @@ returned.
 The wider rule -- that the `plans` repository is the **only** repository any agent may
 commit or push to, and that committing is forbidden everywhere else -- is in
 `agent-implementation-planning`.
+
+### Comment style in subagent output (STRICT)
+
+**Every spawn prompt must state the comment rule**, the same way it states the build
+prohibition: comments describe the code as it now stands, concisely, and never narrate the
+change or the reason for it -- that goes in the commit description the orchestrator writes
+into the walkthrough. The rule itself is in `agent-implementation-planning`.
+
+Say it explicitly even though it is a baseline rule. A subagent is the likeliest source of
+change-narrating comments in the whole round: its entire task description is *a change*,
+its output is not reviewed by the other subagents, and explaining itself in the file is
+how it signals that it did the work it was asked to do.
 
 ### Communication overhead
 
