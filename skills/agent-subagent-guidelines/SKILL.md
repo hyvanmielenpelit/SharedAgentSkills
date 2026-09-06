@@ -4,7 +4,9 @@ description: >-
   How to use AI subagents and human pair programming in implementation plans. Covers the
   mandatory Subagent Use plan section, role-based model tiers (deep, standard, mechanical,
   inherit) and how to resolve them at runtime, the difference between within-session
-  subagents and cross-application handoff, file-level exclusivity, build-boundary
+  subagents and cross-application handoff, file-level exclusivity, the strict rule that
+  subagents never build, test, lint, or verify -- the orchestrator owns every such
+  command and runs it only after all subagents have returned -- build-boundary
   sequencing, and protecting uncommitted changes. Read before assigning work to any
   subagent or writing a plan's Subagent Use section.
 ---
@@ -134,6 +136,10 @@ code generators, migrations, stylesheet compilers, client bundlers. The plan mus
 these chains and **not parallelize across them**. A regeneration boundary falls *between*
 plan steps, never inside one.
 
+**The orchestrator executes every regeneration step itself**, at the boundary, once the
+subagents working on the preceding step have all returned. A subagent never runs one --
+see the next section.
+
 The specific chains are project-specific: consult the repository's own planning skill for
 its Build Impact section.
 
@@ -144,6 +150,46 @@ unless the orchestrator provides a specific file path and instructs them to read
 never a path outside the current task's directory. Pass the relevant plan context **in the
 subagent's prompt** instead. Old and superseded plans corrupt a subagent's understanding of
 its task, and the shared store now puts other repositories' plans one directory away.
+
+### Subagents never build, test, or verify (STRICT)
+
+> [!CAUTION]
+> **A subagent does not run a build, a test suite, a linter, a code generator, a
+> migration, or any other command whose purpose is to produce artifacts or to check that
+> the work is correct. The orchestrator runs all of them, itself, after every subagent in
+> the round has returned.**
+
+A subagent **writes** code -- including test code, build files, and generator inputs. It
+never **runs** the toolchain over them.
+
+Why this is flat rather than a matter of judgement:
+
+- **Parallel builds collide.** Two agents invoking the same toolchain share output
+  directories, lock files, caches, and package restores. The failures that produces look
+  like code defects and are not.
+- **A subagent cannot know the order.** Regeneration boundaries fall *between* plan
+  steps. A subagent that builds right after its own edit builds a tree in which some
+  other agent's half of the change does not exist yet, then reports a breakage the round
+  was always going to resolve two steps later.
+- **A subagent cannot know when the round is finished.** This is the same reason it may
+  not commit: it sees its own files, not the round.
+- **Green from a subagent means nothing.** It was measured against a tree that no longer
+  exists by the time the orchestrator reads the report.
+
+What the subagent does instead:
+
+1. Make its file edits.
+2. **Report** what it changed, anything it could not resolve, and any build, regeneration,
+   or test step its change now requires.
+3. Stop. It does not iterate against a compiler or a test run until things go green.
+
+**Say it in the spawn prompt.** A subagent will otherwise reach for a build to check its
+own work, because that is ordinarily good practice. Every spawn prompt must state that
+the subagent must not build, test, or lint, and must report instead.
+
+Reading stays unrestricted: file reads, searches, `git status`, `git diff`, and inspecting
+build output that already exists are all fine. The prohibition is on **executing** the
+toolchain.
 
 ### Subagents never commit (STRICT)
 
@@ -227,3 +273,6 @@ Yes -- the task spans 8 files across 3 components with no shared files between g
 ### Human Assignments
 None -- no large relocation operations.
 ```
+
+The second row **writes** the test file; it does not run it. The orchestrator runs the
+suite, the build, and the linters once all three subagents have returned.

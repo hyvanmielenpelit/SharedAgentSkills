@@ -92,12 +92,17 @@ graph TD
 ### Phase 4 -- Execute
 
 - Implement step-by-step, tracking progress in `task.md`.
+- **Subagents edit files; they never build, test, or lint.** The orchestrator runs every
+  build, regeneration, and test command itself, at the plan's boundaries, once the
+  subagents on the preceding step have all returned. See `agent-subagent-guidelines`.
 - If you discover something requiring significant deviation, pause, update the plan, and
   request approval for the revision before continuing.
 
 ### Phase 5 -- Verify
 
-- Run tests, builds, and linters; complete the manual checks.
+- **The orchestrator** runs the tests, builds, and linters and completes the manual
+  checks -- never a subagent, and only after every subagent has returned. A result
+  produced by a subagent, on a tree that has since changed, is not verification.
 - Create `walkthrough.md` summarizing what changed, what was tested, and the results.
 
 ---
@@ -150,7 +155,7 @@ Intended implementer: <harness> (<tier>)
 
 ## Build Impact                                  <- mandatory
 Regeneration boundaries triggered (migrations, stylesheet compilation, client
-build, code generation), or "None".
+build, code generation), or "None". The orchestrator re-runs them.
 
 ## Proposed Changes                              <- mandatory
 Grouped by component, ordered by dependency (prerequisites first).
@@ -170,6 +175,7 @@ Mark each file [NEW], [MODIFY], or [DELETE].
 What could break, edge cases, and mitigation strategies.
 
 ## Verification Plan                             <- mandatory
+Everything here is run by the orchestrator, never by a subagent.
 ### Automated
 - Test / build / linter commands.
 ### Manual
@@ -198,7 +204,7 @@ interface.
 1a. **Document Set** -- required whenever the task directory holds more than one versioned
    document. Omit it for a lone plan. See Version harmonization.
 2. **Build Impact** -- explicitly state which regeneration steps must be re-run, or
-   "None".
+   "None". The **orchestrator** re-runs them, between plan steps; subagents never do.
 3. **Subagent Use** -- mandatory even when the answer is "No" (state why).
 4. **Risks** -- do not skip. Even "low risk" changes should state what to watch for.
 5. **Proposed Changes** -- order by dependency. Regeneration boundaries fall **between**
@@ -852,7 +858,8 @@ Update it as you work through each step.
 
 After completing all work, create `walkthrough.md` summarizing: which plan version was
 implemented, what changed (with file references), what was tested, validation results,
-and remaining follow-up items.
+and remaining follow-up items. Every result recorded there is one the orchestrator ran
+itself.
 
 Report it the same way as the plan: a clickable link, plus the path -- see Reporting a
 Document to the User. The walkthrough is the document the user is most likely to actually
