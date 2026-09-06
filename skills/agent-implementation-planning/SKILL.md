@@ -7,9 +7,11 @@ description: >-
   organization/repository scope directories, harmonized _v<N> versioning, the
   commit-and-push protocol, the allowed-organization list that decides whether a plan
   may be stored at all, the gitignored .plans/ fallback and the chat-only tier below it,
-  follow-up rounds, progress tracking, walkthroughs, reporting every document to the user
-  as a clickable link that opens in the application's own viewer, and research isolation.
-  Read before starting any multi-file or cross-layer task.
+  follow-up rounds, progress tracking, walkthroughs and the commit description they
+  carry, the concise code comment style that keeps change narration and rationale out of
+  source files, reporting every document to the user as a clickable link that opens in
+  the application's own viewer, and research isolation. Read before starting any
+  multi-file or cross-layer task.
 ---
 
 # Agent Implementation Planning Workflow
@@ -17,9 +19,8 @@ description: >-
 ## Purpose
 
 This skill defines the **mandatory planning workflow** for non-trivial changes across
-software projects. It ensures complex work is researched, documented, user-approved, and
-verified -- preventing wasted effort, uncoordinated subagents, and unintended breaking
-changes.
+software projects: complex work is researched, documented, user-approved, and verified,
+which prevents wasted effort, uncoordinated subagents, and unintended breaking changes.
 
 > [!IMPORTANT]
 > **Precedence Clause**: A project's own planning skill, `AGENTS.md`, or `CLAUDE.md`
@@ -92,6 +93,8 @@ graph TD
 ### Phase 4 -- Execute
 
 - Implement step-by-step, tracking progress in `task.md`.
+- **Comments you write describe the code as it now stands**, concisely -- never the change
+  or the reason for it. See Code Comment Style.
 - **Subagents edit files; they never build, test, or lint.** The orchestrator runs every
   build, regeneration, and test command itself, at the plan's boundaries, once the
   subagents on the preceding step have all returned. See `agent-subagent-guidelines`.
@@ -103,7 +106,8 @@ graph TD
 - **The orchestrator** runs the tests, builds, and linters and completes the manual
   checks -- never a subagent, and only after every subagent has returned. A result
   produced by a subagent, on a tree that has since changed, is not verification.
-- Create `walkthrough.md` summarizing what changed, what was tested, and the results.
+- Create `walkthrough.md` summarizing what changed, what was tested, and the results,
+  and carrying the commit description for the work.
 
 ---
 
@@ -122,6 +126,41 @@ anything.
 
 This is why plan quality is load-bearing: a well-specified plan makes most
 implementation straightforward, and an underspecified one silently becomes guesswork.
+
+---
+
+## Code Comment Style
+
+A comment describes **the code as it now stands**, for someone opening the file later who
+has no idea a change ever happened. It is not a record of the edit that produced it.
+
+- **Never narrate the change.** No "changed to", "now uses", "previously", "moved here
+  because", "added to fix". The diff already records that, and the comment becomes wrong
+  the moment the next edit lands -- while still reading as authoritative.
+- **Rationale belongs in the commit description**, carried by the walkthrough -- see
+  Commit Description. That is the artifact whose job is to explain *why*; a source file's
+  job is to say what it currently does.
+- **Be brief.** One line where one line does. Do not restate the code in prose, do not
+  summarize a method above itself, and do not explain language or framework behaviour any
+  reader of this codebase already knows.
+- **Match the file you are editing.** Comment density, tone, and format follow the
+  surrounding code, not your own defaults. A sparsely commented file stays sparse.
+- **Keep the comments that earn their place**: a non-obvious invariant, a constraint
+  imposed from outside the file, a workaround and the condition that forces it, a unit, a
+  bound, a reference to a specification or a bug.
+
+```csharp
+// Bad -- narrates the edit, and ages into a lie
+// Switched from the List we had before to a Dictionary, because the linear
+// scan showed up in profiling. Note that this used to return null on a miss.
+
+// Good -- states what holds now
+// Lookup runs once per entity per frame; must stay O(1). Misses throw.
+```
+
+This is not a licence to strip existing commentary. The baseline rule that existing
+comments and documentation are preserved unless the user asks otherwise still applies:
+verbosity is fixed in what you write, never by deleting what someone else wrote.
 
 ---
 
@@ -263,11 +302,10 @@ git -C <main-repository> remote get-url origin
 
 The organization is the path segment before the repository name.
 
-> **One choice, three consequences.** The main repository chosen by the scope rules above is
-> the same repository that decides the scope path, decides eligibility here, and provides the
-> tier 2 fallback below. It is **not** necessarily the repository your session is running
-> in. Reading one repository's remote and filing under another produces a path that mirrors
-> nothing.
+> **One choice, three consequences.** The main repository decides the scope path, decides
+> eligibility here, and provides the tier 2 fallback below -- and it is **not** necessarily
+> the repository your session runs in. Reading one repository's remote and filing under
+> another produces a path that mirrors nothing.
 
 - **Forks.** If `origin` is not in an allowed organization but an `upstream` remote is, use
   **`upstream`** for the scope. That is where the work is destined, and it is the normal
@@ -361,9 +399,7 @@ The scope mirrors the GitHub path, so a directory maps one-to-one onto a URL:
 
 **Every plan has exactly one scope.** Never combine repository names into a single
 directory (`GnollHack_MobileGnollHackLogger` and the like): it mirrors no GitHub path, so it
-belongs to no repository and is found by nobody looking for either. When two candidates are
-genuinely equal, choosing between them is not worth deliberation -- pick one, and record
-that you did.
+belongs to no repository and is found by nobody looking for either.
 
 **A follow-up round never re-picks.** Rounds `_A`, `_B` and later go in the task directory
 the original round created, whichever scope that was. Re-deciding would split one task
@@ -449,9 +485,8 @@ depends on -- they form a **document set**, and every member carries the **same 
 number**.
 
 Revising any member bumps **all** members to the next `_v<N>`, **including members with no
-content changes**. An unchanged member is copied verbatim to the new version number. Yes,
-this means writing a file whose only difference from its predecessor is its name. That is
-the intended cost.
+content changes**: an unchanged member is copied verbatim to the new number. Writing a file
+whose only difference from its predecessor is its name is the intended cost.
 
 - **Mixed versions inside a set are a defect.** `implementation_plan_v3.md` sitting beside
   `client_implementation_plan_v2.md` leaves a reader unable to tell whether the v2 was
@@ -575,13 +610,12 @@ retry is not always enough; a fourth failure means something is wrong that retry
 fix, and an unbounded loop against a network service is its own hazard.
 
 **Rebase, not merge.** This store is append-only, so your commit almost never touches the
-same lines as theirs and a rebase replays it cleanly. Its history exists to answer "what did
-we decide, and in what order", and a merge commit inserts a node carrying no information
-into exactly the history a reader is following. This does not violate the
-never-rewrite-history rule: that protects **published** commits, and a rebase here replays
-only your local, unpushed one. `--autostash` is not optional -- you stage explicit paths, so
-another session's unstaged drafts may be sitting in the shared clone, and without it the
-rebase refuses on something that is not even a conflict.
+same lines as theirs and replays cleanly, while a merge commit inserts a node carrying no
+information into a history whose whole job is "what did we decide, and in what order". This
+does not violate the never-rewrite-history rule: that protects **published** commits, and a
+rebase here replays only your local, unpushed one. `--autostash` is not optional -- you
+stage explicit paths, so another session's unstaged drafts may be sitting in the shared
+clone, and without it the rebase refuses on something that is not even a conflict.
 
 #### If the rebase stops on a conflict
 
@@ -594,10 +628,9 @@ Conflicts here fall into four classes, and **only one of them is yours to resolv
 | **C. Mutable document** | Both edited `task.md` or `walkthrough.md` | **Escalate** |
 | **D. Store metadata** | Both edited the root `README.md` | **Escalate** |
 
-**Class B -- renumber.** This is not a text merge. Two sessions each claimed the same
-version, so they are two different documents, and splicing their prose produces one that
-neither author wrote. The versioning rule already gives the answer -- never overwrite a
-version, increment:
+**Class B -- renumber.** Not a text merge: two sessions each claimed the same version, so
+they are two different documents, and splicing their prose produces one that neither author
+wrote. The versioning rule already gives the answer -- never overwrite a version, increment:
 
 1. `git -C <plans-root> rebase --abort` -- clean tree, local commit intact.
 2. `git -C <plans-root> pull --rebase --autostash`, then look at which versions now exist.
@@ -621,9 +654,9 @@ silently spliced: being a faithful record is the whole value of this store.
 2. **Report**: which files conflicted, which upstream commit introduced the change, and the
    one command that reproduces the conflict for manual resolution.
 
-Abort rather than leaving the rebase in progress. A half-rebased repository -- detached
-HEAD, "rebase in progress", markers on disk -- is a trap for whoever opens it next, who may
-not be the person who resolves it. Reproducing it costs one command.
+Abort rather than leaving the rebase in progress: a half-rebased repository -- detached
+HEAD, markers on disk -- is a trap for whoever opens it next, who may not be the person who
+resolves it, and reproducing it costs one command.
 
 If an `--autostash` pop conflicts, treat it as class C, and **name the stash** in your
 report so the work is not lost.
@@ -639,10 +672,9 @@ Two different conditions land here, and they are handled identically:
 2. **The repository is not eligible** -- it is outside every allowed organization, or it
    has no remote, or the work belongs to no repository at all.
 
-In both cases, **write to the main repository's `.plans/` instead** -- the pre-existing
-layout, unchanged -- **but only if Git confirms it is ignored** (`git check-ignore -q
-.plans`). If it is not ignored, this section does not apply: go to **tier 3** and keep the
-plan in the chat, creating no file anywhere.
+In both cases, **write to the main repository's `.plans/` instead**, in the pre-existing
+layout, **but only if Git confirms it is ignored** (`git check-ignore -q .plans`). If it is
+not ignored, go to **tier 3**: keep the plan in the chat and create no file anywhere.
 
 ```text
 <repository-root>/.plans/YYYY-MM-DD/task_name/
@@ -681,9 +713,9 @@ implied.
    locations, and never write `task.md` to one and `walkthrough.md` to the other.
 
 4. **Do not commit or push anything -- at all.** You are writing inside a project
-   repository, where committing is forbidden. `.plans/` is gitignored, so there is nothing
-   to commit; if that tempts you toward `git add -f`, stop. A fallback round ends with
-   files on disk and an explanation in chat, and nothing else.
+   repository, where committing is forbidden, and `.plans/` is gitignored, so there is
+   nothing to commit. A fallback round ends with files on disk and an explanation in chat,
+   and nothing else.
 
 **Which `.plans/` to use.** The **main repository's** -- the one the scope names -- not the
 one your session happens to be running in. Confirm the precondition against that repository:
@@ -724,12 +756,11 @@ highest version visible in `.plans/` and **say that the number may need correcti
 the two are reconciled.
 
 **Reconciliation.** At the start of a planning session, if the plans repository *is*
-reachable and the `.plans/` of the repository you are working in is non-empty, mention it
-once and offer to move the documents. That is the one you can see cheaply; strays may also
-sit in another repository's `.plans/`, and they surface the same way when someone next works
-there. **Do not move them unattended:** those directories also hold
-pre-migration history that was deliberately left behind, and publishing it is the user's
-decision.
+reachable and the working repository's `.plans/` is non-empty, mention it once and offer to
+move the documents -- that is the one you can see cheaply, and strays in another
+repository's `.plans/` surface the same way when someone next works there. **Do not move
+them unattended:** those directories also hold pre-migration history that was deliberately
+left behind, and publishing it is the user's decision.
 
 **A failed `git push` is not a fallback case.** See above.
 
@@ -800,18 +831,17 @@ to hunt with, when the application they are already looking at can open the docu
 1. **Post a clickable link for each document of the round**, using the mechanism this
    application actually makes clickable. Your harness's own skill names it -- do not
    invent one, and do not fall back to a bare path because linking looked uncertain.
-2. **Make the href an absolute path, not a relative one.** A relative href resolves
-   against whatever the application treats as the current directory, and the plans
-   repository is *outside* the repository you are working in -- a sibling, another drive,
-   or a root resolved from `AGENT_PLANS_ROOT`. Relative hrefs into it open in some
-   sessions and silently fail in others, which is the intermittent dead link users
-   actually hit. An absolute path resolves the same way every time. The only documents
-   that may be linked relative are the ones **inside** the repository you are working in
-   -- a tier 2 `.plans/` there.
+2. **Make the href an absolute path, not a relative one.** The plans repository is
+   *outside* the repository you are working in -- a sibling, another drive, or a root
+   resolved from `AGENT_PLANS_ROOT` -- so a relative href resolves against whatever the
+   application treats as the current directory: it opens in some sessions and silently
+   fails in others, which is the intermittent dead link users actually hit. Only a
+   document **inside** the repository you are working in, such as a tier 2 `.plans/`
+   there, may be linked relative.
 3. **Label the link with the document name and version** (`implementation_plan_v2.md`),
-   not with the whole path. Give the full absolute path in plain text as well, on the same
-   line or the next: the link is for opening the document, the path is for copying it into
-   another session and for showing which storage tier it landed in.
+   not with the whole path, and give the full absolute path in plain text beside it: the
+   link is for opening the document, the path is for copying it into another session and
+   for showing which storage tier it landed in.
 4. **Link every document of the round**, not just the plan. A set announced as three files
    and linked as one leaves two of them unread.
 5. **Post a fresh link on every revision.** `_v3` is a new file, so the `_v2` link no
@@ -865,6 +895,34 @@ Report it the same way as the plan: a clickable link, plus the path -- see Repor
 Document to the User. The walkthrough is the document the user is most likely to actually
 open, and it arrives at the moment the session looks finished.
 
+### Commit Description
+
+The walkthrough also carries a **commit description for the work** -- a ready-to-use
+message for the repository that was changed. This is where the reasoning that must not be
+in the code comments actually lands: why the change was made, what it replaced, which
+alternatives were rejected, and anything a future reader would otherwise have to
+reconstruct from the diff.
+
+Give it as a fenced block, so it can be copied verbatim:
+
+```text
+<area>: <what changed, imperative, one line>
+
+Why: <the problem this solves>
+Approach: <the shape of the change, and any alternative rejected>
+Notes: <regeneration or migration steps, follow-ups, known gaps>
+```
+
+- **Describe the round, not each file.** One block for the work the walkthrough covers; if
+  the user will split it into several commits, give one block per commit and say which
+  files belong to each.
+- **You supply it; you do not run it.** Committing anywhere but the plans repository
+  happens only when the user asks, so present the `git commit` command next to the block
+  in the handoff and stop there.
+- **The plans repository's own commit messages are a different thing** and follow the
+  fixed form in Committing in the Plans Repository. This block is for the project
+  repository.
+
 ---
 
 ## Follow-Up Rounds
@@ -884,10 +942,9 @@ embedded between the document name and the version:
 | Task checklist | `task.md` | `task_A.md` | `task_B.md` |
 | Walkthrough | `walkthrough.md` | `walkthrough_A.md` | `walkthrough_B.md` |
 
-- The **document name** describes the content, in `snake_case`.
-- The **round letter** identifies which follow-up round it belongs to.
-- The **version suffix** tracks revisions within the round, following the same strict
-  rules.
+- The **document name** describes the content, in `snake_case`; the **round letter** says
+  which follow-up round it belongs to; the **version suffix** tracks revisions within that
+  round, under the same strict rules.
 - Checklists and walkthroughs are **singular per round** -- no version suffix.
 
 ### Lifecycle and scope
@@ -898,24 +955,6 @@ before execution.
 - Use a **follow-up round** when the work directly relates to the original task.
 - Create a **new task** when the work is substantially independent, the scope has grown
   beyond the original, or enough time has passed.
-
----
-
-## Quick Decision Guide
-
-```text
-Is it a minor follow-up while executing an already-approved plan?
-  -> YES: Skip a new plan. Continue executing the existing one.
-  -> NO: Continue
-
-Is the task trivial (single file, typo, comment, question)?
-  -> YES: Skip the plan. Just do it.
-  -> NO: Continue
-
-Does it touch multiple files, cross subsystem boundaries, or change a contract?
-  -> YES: Write a full plan. Follow the five-phase lifecycle.
-  -> NO: Use judgment. When in doubt, write the plan.
-```
 
 ---
 
@@ -951,23 +990,20 @@ and **stale analyses** whose assumptions no longer hold.
 
 ### Rules for subagents
 
-Subagents operate on a **strict need-to-know basis**:
-
-- **Do NOT read any file in either plan location** unless the orchestrator gives a
-  specific path and instructs you to read it. Never a path outside the current task's
-  directory.
-- The orchestrator passes relevant context **in the subagent's prompt**, not by pointing
-  it at the directory.
+Subagents operate on a **strict need-to-know basis**: they read **no file in either plan
+location** unless the orchestrator gives a specific path -- never one outside the current
+task's directory -- and instructs them to read it. The orchestrator passes relevant context
+**in the subagent's prompt**, not by pointing a subagent at the directory.
 
 ### Rationale
 
-1. **Stale data corruption** -- a `_v1` plan may contain an approach that was explicitly
-   rejected. An agent reading it may unconsciously adopt the rejected design.
-2. **Cross-task contamination** -- plans for unrelated tasks may describe changes to the
-   same files with different intent.
-3. **Token waste** -- the store grows large; reading irrelevant plans spends context that
-   should go to source code.
-4. **Subagent scope creep** -- subagents that browse the store discover context beyond
-   their assignment, leading to out-of-scope changes.
+1. **Stale data corruption** -- a `_v1` may hold an approach that was explicitly rejected,
+   and an agent reading it unconsciously adopts the rejected design.
+2. **Cross-task contamination** -- plans for unrelated tasks describe changes to the same
+   files with different intent.
+3. **Token waste** -- the store grows large; irrelevant plans spend context that should go
+   to source code.
+4. **Subagent scope creep** -- a subagent that browses discovers context beyond its
+   assignment, and changes things outside it.
 5. **Cross-repository contamination** -- a shared store puts every repository's plans one
-   directory away from every other repository's.
+   directory away from every other's.

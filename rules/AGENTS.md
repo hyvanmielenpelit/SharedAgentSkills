@@ -8,13 +8,13 @@ loads into every context window.
 - **Never write temporary files, scratch scripts, or intermediate data into a repository**
   -- not the root, not a scratch directory inside it, not anywhere in the source tree.
 - Use the agent's dedicated scratch directory. **Your harness rules name the exact path.**
-- If a build genuinely requires temporary files inside the project, put them in a
-  dedicated `tmp/` or `build/` directory that is gitignored, and clean up.
+- If a build truly needs temporary files inside the project, use a gitignored `tmp/` or
+  `build/` directory, and clean up.
 
 ## Git Operations
 
-- **Do NOT commit or push unless the user explicitly asks.** Leave modified and new files
-  staged or untracked as appropriate, and present the commands in the handoff.
+- **Do NOT commit or push unless the user explicitly asks.** Leave the changes in the
+  working tree, staged or untracked, and present the commands in the handoff.
 - **The `plans` repository is the ONLY one you may commit or push to.** Everywhere else --
   including a `.plans/` fallback -- it is forbidden unless the user asks.
 
@@ -25,16 +25,15 @@ loads into every context window.
   `<root>/<organization>/<repository>/YYYY-MM-DD/task_name/`. Resolve `<root>` as
   `AGENT_PLANS_ROOT`, else `C:\hmp\plans`, else a `plans` directory beside your
   repository; never create it.
-- **Otherwise** use the **main** repository's `.plans/`, and only if
-  `git check-ignore -q .plans` succeeds there. If it does not, keep the plan in the chat
-  and write no file.
+- **Otherwise** the **main** repository's `.plans/`, and only if
+  `git check-ignore -q .plans` succeeds there; if not, keep the plan in the chat and write
+  no file.
 - **Say which of the three applies**; link each document by absolute path, never bare.
 
 ## Environment Constraints
 
-- **Windows**: use commands that exist on Windows -- PowerShell cmdlets or standard
-  Windows executables. Do not assume Unix coreutils are present. See
-  `agent-powershell-guidelines`.
+- **Windows**: use PowerShell cmdlets or standard Windows executables; do not assume Unix
+  coreutils are present. See `agent-powershell-guidelines`.
 
 ## Encodings and Line Endings
 
@@ -47,15 +46,16 @@ loads into every context window.
 ## Important Warnings
 
 - **Preserve existing comments and documentation** unless explicitly asked to change them.
+- **Comments describe the code's current state**, briefly. Never narrate the change or why
+  it was made -- that belongs in the commit description.
 - **Never overwrite uncommitted changes** without explicit user permission. If work is at
   risk, ask the user to commit first.
 - **Do not hardcode version numbers in AI skills** -- package versions, SDK builds, or
-  model names. Reference the source-of-truth file, or state the selection rule and let the
-  session resolve it. Written rosters drift silently.
+  model names. Name the source-of-truth file, or the selection rule the session resolves
+  at runtime. Written rosters drift silently.
 
 ## Where Guidance Lives
 
-Skills and rules are distributed from the `SharedAgentSkills` repository. Guidance that is
-true everywhere belongs there; guidance about one project belongs in that project's own
-`.agents/` directory. When editing that repository, its `.agents/AGENTS.md` explains the
-placement rules.
+Skills and rules are distributed from the `SharedAgentSkills` repository; guidance about
+one project belongs in that project's own `.agents/` directory. When editing that
+repository, its `.agents/AGENTS.md` explains the placement rules.
