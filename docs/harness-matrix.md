@@ -42,6 +42,7 @@ it is a competing procedure for the same task, not just a different tool name.
 | C11 | Claude Code has no `brain/` directory; use the session scratchpad it reports | `rules/CLAUDE.md` | Always-relevant fact, not a procedure |
 | C12 | `~/.claude/skills/` discovery and the `@rules/...` import mechanism | `docs/`, plus one line in `rules/CLAUDE.md` | Installation detail, not task guidance |
 | C13 | How a document becomes a clickable link here: Markdown link syntax, href written as an absolute forward-slash path (`C:/hmp/plans/...`) rather than working-directory-relative, `SendUserFile` as the side-panel presentation, and the `Artifact` tool ruled out because it publishes to claude.ai | `claude-code-conventions` | Names Claude Code tools and its own link rendering. The shared requirements (never a bare path, always an absolute href) stay in `agent-implementation-planning` |
+| C14 | Quota budgeting against the active subscription: `claude-budget.js` reads `~/.claude/projects` transcripts, attributes each request to the paying subscription via `bridge-session` records, and the stop rule decides whether the next plan step will fit | `claude-usage-quota-budget` | Reads a transcript store and a rate-limit model only Claude Code has. The shared half -- stopping at a step boundary rather than mid-step -- is a consequence of Phase 4 and needs no restating in `agent-implementation-planning` |
 
 ## Antigravity / Gemini
 

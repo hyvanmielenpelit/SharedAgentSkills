@@ -93,6 +93,9 @@ graph TD
 ### Phase 4 -- Execute
 
 - Implement step-by-step, tracking progress in `task.md`.
+- **Check quota headroom at every step boundary** -- before the first step, between
+  steps, and after the last. Stop at a boundary rather than exhausting the budget
+  part-way through a step. See Quota Budgeting.
 - **Comments you write describe the code as it now stands**, concisely -- never the change
   or the reason for it. See Code Comment Style.
 - **Subagents edit files; they never build, test, or lint.** The orchestrator runs every
@@ -108,6 +111,8 @@ graph TD
   produced by a subagent, on a tree that has since changed, is not verification.
 - Create `walkthrough.md` summarizing what changed, what was tested, and the results,
   and carrying the commit description for the work.
+- **Report what the plan consumed** against the quota, alongside the verification
+  results. See Quota Budgeting.
 
 ---
 
@@ -881,6 +886,53 @@ Based on: implementation_plan_v2.md
 ```
 
 Update it as you work through each step.
+
+---
+
+## Quota Budgeting
+
+A plan abandoned part-way through a step leaves the tree in a state the checklist does
+not describe and the next session cannot resume from. Budget so that stopping always
+happens **at a step boundary**.
+
+Check at three moments, and only these -- a reading taken inside a step cannot change
+what you do, and only burns context:
+
+**Settle once, at the start, whether this is possible and wanted.** Some harnesses need
+a figure only the user can read off a usage panel. Establish it before any work begins,
+not at the boundary where it would interrupt: test what is already known, derive what
+can be derived, and only then ask. **If the user declines, run no further quota commands
+for the plan** and record the decision in `task.md` so a resumed session does not ask
+again. Do not raise it at all for a plan short enough that no limit is in reach --
+the question is noise on a three-step refactor.
+
+| When | What to establish |
+|------|-------------------|
+| Before the first step | What is available, and what the first step is likely to need |
+| At each boundary | What the step just finished cost, what remains, what the next one needs |
+| After the last step | What the plan consumed end to end |
+
+**Estimate the next step from the measured cost of the steps already done**, never from
+the plan's prose -- prose has no scale. Until two steps have been measured there is no
+basis for an estimate: say so plainly and hold to a conservative floor instead of
+inventing a number.
+
+> [!IMPORTANT]
+> **If what remains is below the estimate, stop before starting the step.** Do not begin
+> it and hope. Alert the user through whatever notification mechanism the harness offers
+> -- not only in-line text, which nobody is reading if they have walked away -- and
+> report, in one place:
+>
+> - which step you stopped **before**, and what it is estimated to need;
+> - what the previous step cost, and what the session has consumed so far;
+> - what remains, and when it replenishes;
+> - that `task.md` is current, so the work resumes at the right place.
+
+Waiting for the window to replenish is frequently cheaper than any other remedy, and it
+is the user's call -- give them the reset time rather than deciding for them.
+
+The mechanism -- which tool measures consumption, and how the user is alerted -- is in
+your harness's own skill. Do not guess at another harness's.
 
 ---
 

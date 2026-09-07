@@ -24,7 +24,8 @@ SharedAgentSkills/
 ├── .claude/           # NEVER LINKED - Claude adapter for the above
 ├── tools/
 │   ├── validate_skills.py   # frontmatter, naming, no-model-names, size caps
-│   └── sync_stubs.ps1       # regenerate a project repo's .claude/ stubs
+│   ├── sync_stubs.ps1       # regenerate a project repo's .claude/ stubs
+│   └── claude-budget.js     # run BY agents, not on this repo - see claude-usage-quota-budget
 ├── setup.ps1          # idempotent bootstrap; -DryRun and -Prune
 └── sync.ps1           # git pull --ff-only, then setup.ps1
 ```
