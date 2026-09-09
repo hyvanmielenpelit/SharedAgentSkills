@@ -1,24 +1,53 @@
 ---
 name: claude-usage-quota-budget
 description: >-
-  Budgeting an implementation plan against the active Claude subscription's usage quota,
-  so work stops at a step boundary instead of dying part-way through a step. Read before
-  the first step of an execution phase, at every step boundary, and after the last.
-  Covers claude-budget.js in the shared tools directory; how to get calibrated without
-  pestering the user -- test first, derive from past rate-limit rejections second, ask
-  only as a last resort and honour a no for the rest of the plan; per-subscription
-  attribution, since a Team plan and a Pro plan hold separate rate-limit windows;
-  measuring what a step cost and estimating the next from it; the stop rule and its
-  margin; alerting the user by push notification when the budget will not cover the next
-  step, and what that report must say; reporting the whole plan's consumption at the end;
-  and telling an approximated percentage from a measured one. Also read when asked how
-  much quota is left or what a piece of work cost.
+  ON REQUEST ONLY -- never load this skill automatically. Load it when the user's own
+  prompt asks for quota budgeting by name or in its own words: quota, usage limit, rate
+  limit, the 5-hour or weekly window, budget this plan, how much quota is left, what did
+  this step cost, /usage, claude-budget. Do NOT load it because a plan is long, because
+  an execution phase reached a step boundary, or because agent-implementation-planning
+  names quota budgeting -- a Premium Team seat or a Max plan holds far more quota than a
+  plan consumes, so tracking is overhead there and earns its place only on a standard
+  seat, only when asked. Once invoked: budgeting a plan against the subscription's usage
+  quota with claude-budget.js so work stops at a step boundary rather than part-way
+  through a step -- calibration, per-subscription attribution, measuring a step and
+  estimating the next from it, the stop rule and its margin, the push notification when
+  the budget will not cover the next step, and reporting what the plan consumed.
 ---
 
 # Claude Usage Quota Budget
 
 Claude Code only. The tool reads the transcripts Claude Code writes under
 `~/.claude/projects`; no other harness has them.
+
+---
+
+## When to Use This Skill
+
+**On request only. This skill does not apply unless the user asks for it.**
+
+Load it when the user's prompt asks for quota budgeting -- by name, or in its own words:
+quota, usage limit, rate limit, the 5-hour or weekly window, "budget this plan", "how
+much quota is left", "what did that step cost", `/usage`, `claude-budget`. Load it too
+when a project's own rules, or a plan document already in hand, asks for quota tracking.
+
+**Do not load it on your own initiative**, and in particular not because:
+
+- a plan is long, fans out to subagents, or looks expensive;
+- an execution phase reached a step boundary;
+- `agent-implementation-planning` names quota budgeting among Phase 4's duties. That
+  requirement is conditional on quota tracking being in effect. With no tracking in
+  effect, execute the plan and skip the readings -- there is nothing to measure and
+  nothing to decide.
+
+**Why:** a **Premium Team seat** carries so much usage quota that a plan of the size
+these skills describe never comes near the limit, and a personal **Max** plan is the
+same. Tracking against it spends context and user attention on a question that cannot
+change what happens. It earns its place on a **standard Team seat**, where a long plan
+genuinely can hit the 5-hour window mid-step -- and there the user, who is the one who
+knows which seat they are on, is the one who asks.
+
+Everything below assumes the skill has been asked for.
 
 ---
 

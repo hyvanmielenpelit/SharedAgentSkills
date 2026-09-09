@@ -93,9 +93,9 @@ graph TD
 ### Phase 4 -- Execute
 
 - Implement step-by-step, tracking progress in `task.md`.
-- **Check quota headroom at every step boundary** -- before the first step, between
-  steps, and after the last. Stop at a boundary rather than exhausting the budget
-  part-way through a step. See Quota Budgeting.
+- **If quota tracking is in effect, check headroom at every step boundary** -- before
+  the first step, between steps, and after the last. Stop at a boundary rather than
+  exhausting the budget part-way through a step. See Quota Budgeting.
 - **Comments you write describe the code as it now stands**, concisely -- never the change
   or the reason for it. See Code Comment Style.
 - **Subagents edit files; they never build, test, or lint.** The orchestrator runs every
@@ -111,8 +111,8 @@ graph TD
   produced by a subagent, on a tree that has since changed, is not verification.
 - Create `walkthrough.md` summarizing what changed, what was tested, and the results,
   and carrying the commit description for the work.
-- **Report what the plan consumed** against the quota, alongside the verification
-  results. See Quota Budgeting.
+- **If quota was tracked, report what the plan consumed** against it, alongside the
+  verification results. See Quota Budgeting.
 
 ---
 
@@ -891,9 +891,15 @@ Update it as you work through each step.
 
 ## Quota Budgeting
 
-A plan abandoned part-way through a step leaves the tree in a state the checklist does
-not describe and the next session cannot resume from. Budget so that stopping always
-happens **at a step boundary**.
+**This applies only when quota tracking is in effect** -- the user asked for it, or a
+harness or project rule requires it. It is not a default duty of Phase 4: on a
+subscription whose allowance dwarfs anything a plan consumes, the readings answer a
+question that cannot change what happens. Where no tracking is in effect, skip this
+section entirely and do not raise it.
+
+Where it is in effect: a plan abandoned part-way through a step leaves the tree in a
+state the checklist does not describe and the next session cannot resume from. Budget so
+that stopping always happens **at a step boundary**.
 
 Check at three moments, and only these -- a reading taken inside a step cannot change
 what you do, and only burns context:

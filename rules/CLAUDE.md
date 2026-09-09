@@ -29,8 +29,9 @@ Claude Code only:
   via `additionalDirectories`, and `ExitPlanMode`.
 - `claude-code-conventions` -- resolving a tier here, the spawn boundary, agent types, and
   the `.claude/skills/` pointer-stub contract.
-- `claude-usage-quota-budget` -- checking the active subscription's remaining quota at
-  every plan step boundary, and stopping cleanly rather than mid-step.
+- `claude-usage-quota-budget` -- **on request only**: checking the active
+  subscription's remaining quota at every plan step boundary, and stopping cleanly
+  rather than mid-step. Worth it on a standard seat; a Premium seat has quota to spare.
 
 A project's own skills override these wherever they differ.
 
