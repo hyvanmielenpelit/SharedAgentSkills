@@ -53,6 +53,12 @@ loads into every context window.
 - **Do not hardcode version numbers in AI skills** -- package versions, SDK builds, or
   model names. Name the source-of-truth file, or the selection rule the session resolves
   at runtime. Written rosters drift silently.
+- **Never write a secret-shaped literal** -- a string in a vendor token format such as
+  `sk_live_`, `glpat-`, `ghp_` or `AKIA` followed by a random-looking body -- into source,
+  tests, comments, documentation, or plans, even when it is synthetic. GitHub push
+  protection scans the pushed text and blocks the whole push. A fixture that must scan as a
+  token at runtime is spelled as two concatenated literals, prefix and body, and a comment
+  describes a token's shape in words rather than quoting one.
 
 ## Where Guidance Lives
 
