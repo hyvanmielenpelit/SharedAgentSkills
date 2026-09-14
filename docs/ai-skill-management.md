@@ -201,7 +201,8 @@ that is easy to forget.** Nothing on your machine will remind you.
 - Correct cell in the matrix; correct prefix.
 - `name:` matches the directory; `description:` describes trigger conditions.
 - No concrete model name outside a single parenthetical hint in a harness skill.
-- Rules files still under 3 KB.
+- Rules files still under 3 KB, and clear of the validator's warning band -- the last
+  5% below the cap, where the next sentence anyone adds breaks CI.
 - No project noun in a shared skill; no harness noun in `skills/` or
   `rules/AGENTS.md`.
 - Stubs regenerated if a canonical description changed.

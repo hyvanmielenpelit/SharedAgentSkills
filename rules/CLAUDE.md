@@ -22,6 +22,8 @@ Shared, both harnesses:
   to resolve them, file-level exclusivity, protecting uncommitted changes.
 - `agent-powershell-guidelines` -- Windows and PowerShell 5.1 syntax, encoding, line
   endings, non-interactive execution.
+- `agent-secret-hygiene` -- what makes a literal secret-shaped, why push protection
+  rejects the whole push, and how to write a token fixture that does not trip it.
 
 Claude Code only:
 

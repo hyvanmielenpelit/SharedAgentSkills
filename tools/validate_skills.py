@@ -103,6 +103,11 @@ HARNESS_SKILL_DIRS = ("skills-claude", "skills-gemini")
 
 RULES_MAX_BYTES = 3 * 1024
 
+# The last few bytes below the cap are where a rules file stalls: it passes, and the next
+# sentence anyone writes fails CI. This band reports the squeeze while it is still cheap to
+# act on, and never changes the exit code.
+RULES_WARN_BYTES = int(RULES_MAX_BYTES * 0.95)
+
 
 def check_no_model_names(path: Path, allowance: int) -> bool:
     """Tier-to-model mappings must not be written down: rosters change and this
@@ -148,6 +153,13 @@ def validate_rules_size(repo_root: Path) -> bool:
                 file=sys.stderr,
             )
             success = False
+        elif size > RULES_WARN_BYTES:
+            print(
+                f"WARN [Rules Size]: {path} is {size} bytes LF-normalized, "
+                f"{RULES_MAX_BYTES - size} below the {RULES_MAX_BYTES} cap. Move content "
+                f"into a triggered skill before the next edit fails.",
+                file=sys.stderr,
+            )
     return success
 
 
