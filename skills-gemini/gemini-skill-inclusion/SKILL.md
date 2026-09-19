@@ -94,7 +94,7 @@ When a skill is missing from `/`, check in this order:
 3. **The path is the real directory.** Point `entries` at the repository
    directories themselves. Do not point them at a directory of NTFS junctions
    and expect the walker to follow them the way Claude Code does -- that is the
-   difference between the two harnesses, and the reason `~/.gemini/config/skills/`
+   difference between Claude Code and Antigravity, and the reason `~/.gemini/config/skills/`
    was abandoned.
 4. **Restart Antigravity.** `skills.json` is read when the customization set is
    built, not per turn.

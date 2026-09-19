@@ -14,7 +14,7 @@ is only the fallback when it cannot be reached.
 
 ## Globally Installed Skills
 
-Shared, both harnesses:
+Shared, all harnesses:
 
 - `agent-implementation-planning` -- the planning lifecycle, plan template, the plans
   repository layout and versioning, the commit protocol, follow-up rounds, isolation.
@@ -40,7 +40,7 @@ A project's own skills override these wherever they differ.
 ## Editing the Shared Rules
 
 `rules/AGENTS.md` reaches Claude Code through a live junction, so an edit takes effect
-immediately. It reaches Antigravity as an **inlined copy** that does not.
+immediately. It reaches Antigravity and Codex as **inlined copies** that do not.
 
-**If you edit `rules/AGENTS.md` or `rules/GEMINI.md`, tell the user to run
-`.\setup.ps1` in `SharedAgentSkills`**, or Antigravity keeps reading the old text.
+**If you edit `rules/AGENTS.md`, `rules/GEMINI.md`, or `rules/CODEX.md`, tell the user to
+run `.\setup.ps1` in `SharedAgentSkills`**, or the corresponding copied rules stay stale.

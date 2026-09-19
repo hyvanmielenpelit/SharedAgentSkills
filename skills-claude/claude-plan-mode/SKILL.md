@@ -13,7 +13,7 @@ description: >-
 # Claude Code Plan Mode
 
 Claude Code only. Antigravity has no plan mode; its equivalent artifact workflow is in
-`gemini-antigravity-conventions`.
+`gemini-antigravity-conventions`. The Codex plan-mode workflow is in `codex-conventions`.
 
 This skill covers **how Claude Code's plan mode reconciles with the shared plans
 repository**. The plan

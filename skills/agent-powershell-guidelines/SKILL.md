@@ -359,3 +359,11 @@ substitute a worse method to avoid the install.
    - If executing a scratch `.ps1` script fails due to `PSSecurityException`, check `Get-ExecutionPolicy -Scope Process`. If not `Bypass`, use `powershell.exe -NoProfile -ExecutionPolicy Bypass -File <path>`.
 3. **Native File Tools:**
    - Use `write_to_file`, `replace_file_content`, and `view_file` for file operations.
+
+### Harness: Codex
+
+- `%TEMP%` is writable; keep scratch files there rather than in a repository.
+- `apply_patch` can leave mixed line endings in a CRLF file; normalize edited Markdown and PowerShell files to CRLF afterward.
+- `workspace-write` permits the current workspace and configured `sandbox_workspace_write.writable_roots`; a listed root may still prompt for approval on Windows.
+- `.git`, `.agents`, and `.codex` remain protected inside writable roots; request an approved escalation before writing them.
+- Require exit code 0 from tool-run native commands; inside PowerShell scripts, check `$LASTEXITCODE` explicitly.

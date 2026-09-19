@@ -104,7 +104,7 @@ promising something no harness can do.
 | Mechanism | What it is | Bounded by |
 |-----------|-----------|-----------|
 | **Within-session subagents** | The orchestrator spawns helpers inside one application | That application's own model roster. **No application can spawn another vendor's models.** |
-| **Cross-application phase handoff** | Plan in one application, implement in the other | **A person opening the other application.** The plan document is the entire interface. |
+| **Cross-application phase handoff** | Plan in one application, implement in another application | **A person opening another application.** The plan document is the entire interface. |
 
 The **Subagent Use** section governs the first. The second is recorded in the plan's
 **Execution Target** line (see `agent-implementation-planning`) and executed by a human.

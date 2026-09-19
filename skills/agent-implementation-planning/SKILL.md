@@ -239,7 +239,7 @@ Intended implementer: Antigravity (standard)
 
 It names a **harness and a tier, never a model version** -- the planning session cannot
 verify the implementing application's model roster, and **no agent can perform the
-handoff**. A person opens the other application; the plan document is the entire
+handoff**. A person opens another application; the plan document is the entire
 interface.
 
 ### Key structural rules

@@ -116,15 +116,14 @@ knowledge that the history is not recoverable from anywhere else.
 ## The regeneration boundary
 
 > [!WARNING]
-> `rules/AGENTS.md` reaches Antigravity as an **inlined copy**, regenerated only when
-> `setup.ps1` or `sync.ps1` runs. Claude Code reads the same file through a live junction.
+> `rules/AGENTS.md` reaches Antigravity and Codex as **inlined copies**, regenerated only
+> when `setup.ps1` or `sync.ps1` runs. Claude Code reads the same file through a live junction.
 >
-> Between editing the list and running `setup.ps1`, the two applications **disagree** --
-> Claude Code applies the new list, Antigravity applies the old one, and nothing reports
-> the disagreement. Because the rules file does not name the organizations, this affects
-> the surrounding wording rather than the list itself, but run the script anyway: it is
-> one command, and the asymmetry is the most common source of "why is Gemini ignoring my
-> rule".
+> Between editing the list and running `setup.ps1`, the applications **disagree** --
+> Claude Code applies the new text while Antigravity and Codex apply their old copies, and
+> nothing reports the disagreement. Because the rules file does not name the
+> organizations, this affects the surrounding wording rather than the list itself, but
+> run the script anyway: the live-versus-copied asymmetry is easy to miss.
 
 ---
 

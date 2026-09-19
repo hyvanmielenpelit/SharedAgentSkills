@@ -13,7 +13,8 @@ description: >-
 
 # Claude Code Conventions
 
-Claude Code only. The Antigravity equivalents are in `gemini-antigravity-conventions`.
+Claude Code only. The Antigravity equivalents are in `gemini-antigravity-conventions`;
+the Codex equivalents are in `codex-conventions`.
 
 ---
 
@@ -40,16 +41,16 @@ If the roster has changed, the property still selects correctly and the hint doe
 ## The Spawn Boundary
 
 > [!IMPORTANT]
-> **This session can spawn only Claude models.** Claude Code has no access to Gemini
-> models, and no configuration makes it so.
+> **This session can spawn only Claude models.** Claude Code has no access to another
+> vendor's models, and no configuration makes it so.
 
-A plan whose **Execution Target** names Antigravity is handed over by **a person opening
-that application** -- not by spawning a subagent, which is impossible. The plan document
-in the plans repository is the entire interface between the two.
+A plan whose **Execution Target** names another application is handed over by **a person
+opening that application** -- not by spawning a subagent, which is impossible. The plan
+document in the plans repository is the entire interface between applications.
 
-If asked to hand work to the other application, say plainly that this
+If asked to hand work to another application, say plainly that this
 application cannot spawn another vendor's models, and point at the Execution Target line
-as the way to record the intent for whoever opens the other application. Do not silently
+as the way to record the intent for whoever opens that application. Do not silently
 substitute a Claude model and report it as done, and do not claim a handoff occurred.
 
 ---

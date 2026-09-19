@@ -68,20 +68,27 @@ def validate_rules(repo_root: Path) -> bool:
         print(f"FAIL [Missing]: {agents_rule} not found.", file=sys.stderr)
         return False
 
-    if not check_no_bom(agents_rule):
-        success = False
-
-    text = agents_rule.read_text(encoding="utf-8")
-    if text.startswith("---"):
-        print(f"FAIL [Frontmatter]: {agents_rule} must not contain YAML frontmatter.", file=sys.stderr)
-        success = False
-
-    # Check for relative links in rules/AGENTS.md
-    for match in LINK_REGEX.finditer(text):
-        url = match.group(2).strip()
-        if not url.startswith(("http://", "https://", "mailto:", "#")):
-            print(f"FAIL [Link]: {agents_rule} must not contain relative links ('{url}').", file=sys.stderr)
+    for name in ("AGENTS.md", "GEMINI.md", "CODEX.md"):
+        rule_path = repo_root / "rules" / name
+        if not rule_path.exists():
+            continue
+        if not check_no_bom(rule_path):
             success = False
+        text = rule_path.read_text(encoding="utf-8")
+        if text.startswith("---"):
+            print(
+                f"FAIL [Frontmatter]: {rule_path} must not contain YAML frontmatter.",
+                file=sys.stderr,
+            )
+            success = False
+        for match in LINK_REGEX.finditer(text):
+            url = match.group(2).strip()
+            if not url.startswith(("http://", "https://", "mailto:", "#")):
+                print(
+                    f"FAIL [Link]: {rule_path} must not contain relative links ('{url}').",
+                    file=sys.stderr,
+                )
+                success = False
 
     claude_rule = repo_root / "rules" / "CLAUDE.md"
     if claude_rule.exists():
@@ -95,11 +102,16 @@ def validate_rules(repo_root: Path) -> bool:
     return success
 
 
-MODEL_NAME_REGEX = re.compile("(?<![A-Za-z0-9_./-])(Opus|Sonnet|Haiku|Gemini|Flash|GPT)(?![A-Za-z0-9_./-])", re.IGNORECASE)
+MODEL_NAME_REGEX = re.compile(
+    r"(?<![A-Za-z0-9_./-])"
+    r"(?:Opus|Sonnet|Haiku|Gemini|Flash|GPT(?:-?\d+(?:\.\d+)*(?:-[A-Za-z][A-Za-z0-9-]*)?)?)"
+    r"(?![A-Za-z0-9_./-])",
+    re.IGNORECASE,
+)
 
 # Directories whose skills are linked into a single harness. Each may carry at
 # most one concrete model mention, as a parenthetical hint.
-HARNESS_SKILL_DIRS = ("skills-claude", "skills-gemini")
+HARNESS_SKILL_DIRS = ("skills-claude", "skills-gemini", "skills-codex")
 
 RULES_MAX_BYTES = 3 * 1024
 
@@ -114,7 +126,7 @@ def check_no_model_names(path: Path, allowance: int) -> bool:
     repository has no review cadence. Tiers are resolved at runtime against the
     models a session actually offers."""
     text = path.read_text(encoding="utf-8")
-    hits = MODEL_NAME_REGEX.findall(text)
+    hits = [match.group(0) for match in MODEL_NAME_REGEX.finditer(text)]
     if len(hits) > allowance:
         print(
             f"FAIL [Model Names]: {path} mentions {len(hits)} concrete model name(s) "
@@ -141,7 +153,7 @@ def validate_rules_size(repo_root: Path) -> bool:
     """Rules files load into every context window in every project, so they are
     capped. Anything longer belongs in a triggered skill."""
     success = True
-    for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md"):
+    for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md", "CODEX.md"):
         path = repo_root / "rules" / name
         if not path.exists():
             continue
@@ -275,10 +287,8 @@ def validate_skill(skill_dir: Path) -> bool:
 def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
 
-    skill_trees = [
-        (repo_root / "skills", 0),
-        (repo_root / "skills-claude", 3),
-        (repo_root / "skills-gemini", 3),
+    skill_trees = [(repo_root / "skills", 0)] + [
+        (repo_root / name, 3) for name in HARNESS_SKILL_DIRS
     ]
 
     if not (repo_root / "skills").is_dir():
@@ -296,7 +306,12 @@ def main() -> int:
     # rules/AGENTS.md is the neutral baseline: no model name at all. The harness rules
     # files may name the other application when stating what is deliberately not
     # installed -- enough for a sentence, not enough for a roster.
-    for name, allowance in (("AGENTS.md", 0), ("CLAUDE.md", 2), ("GEMINI.md", 2)):
+    for name, allowance in (
+        ("AGENTS.md", 0),
+        ("CLAUDE.md", 2),
+        ("GEMINI.md", 2),
+        ("CODEX.md", 2),
+    ):
         rule_path = repo_root / "rules" / name
         if rule_path.exists():
             if not check_no_model_names(rule_path, allowance):

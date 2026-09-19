@@ -10,13 +10,14 @@ $repoRoot = $PSScriptRoot
 # Source directory -> harness routing. A skill directory is linked only into the
 # harness(es) marked $true here.
 $Routes = @(
-    [PSCustomObject]@{ Source = 'skills';        Claude = $true;  Gemini = $true  },
-    [PSCustomObject]@{ Source = 'skills-claude'; Claude = $true;  Gemini = $false },
-    [PSCustomObject]@{ Source = 'skills-gemini'; Claude = $false; Gemini = $true  }
+    [PSCustomObject]@{ Source = 'skills';        Claude = $true;  Gemini = $true;  Codex = $true  },
+    [PSCustomObject]@{ Source = 'skills-claude'; Claude = $true;  Gemini = $false; Codex = $false },
+    [PSCustomObject]@{ Source = 'skills-gemini'; Claude = $false; Gemini = $true;  Codex = $false },
+    [PSCustomObject]@{ Source = 'skills-codex';  Claude = $false; Gemini = $false; Codex = $true  }
 )
 
 # Never linked, never copied, never inlined into any harness configuration.
-$NeverLinked = @('.agents', '.claude', 'docs', '.plans', 'tools')
+$NeverLinked = @('AGENTS.md', '.agents', '.claude', 'docs', '.plans', 'tools')
 
 Write-Host "=================================================="
 Write-Host " SharedAgentSkills Bootstrap Setup"
@@ -30,7 +31,8 @@ Write-Host "Routing:" -ForegroundColor Cyan
 foreach ($r in $Routes) {
     $c = if ($r.Claude) { 'yes' } else { 'no ' }
     $g = if ($r.Gemini) { 'yes' } else { 'no ' }
-    Write-Host ("  {0,-16} -> Claude: {1}   Gemini: {2}" -f $r.Source, $c, $g)
+    $x = if ($r.Codex) { 'yes' } else { 'no ' }
+    Write-Host ("  {0,-16} -> Claude: {1}   Gemini: {2}   Codex: {3}" -f $r.Source, $c, $g, $x)
 }
 Write-Host ("  NEVER LINKED:    {0}" -f ($NeverLinked -join ', ')) -ForegroundColor DarkGray
 Write-Host ""
@@ -142,13 +144,21 @@ function Ensure-Junction {
         return
     }
 
-    if (Test-Path -LiteralPath $LinkPath) {
-        $item = Get-Item -LiteralPath $LinkPath -Force
+    $item = Get-Item -LiteralPath $LinkPath -Force -ErrorAction SilentlyContinue
+    if ($item) {
         $isReparse = [bool]($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)
 
         if ($isReparse) {
             $currentTarget = $item.Target
-            $normCurrent = if ($currentTarget) { (Resolve-Path $currentTarget).Path.TrimEnd('\') } else { '' }
+            if ($currentTarget -is [array]) { $currentTarget = $currentTarget[0] }
+            $resolvedCurrent = if ($currentTarget) { Resolve-Path -LiteralPath $currentTarget -ErrorAction SilentlyContinue } else { $null }
+            $normCurrent = if ($resolvedCurrent) {
+                $resolvedCurrent.Path.TrimEnd('\')
+            } elseif ($currentTarget) {
+                ([string]$currentTarget).TrimEnd('\')
+            } else {
+                ''
+            }
             $normDesired = (Resolve-Path $TargetPath).Path.TrimEnd('\')
 
             if ($normCurrent -eq $normDesired) {
@@ -186,8 +196,12 @@ function Ensure-Junction {
         if (-not (Test-Path -LiteralPath $parent)) {
             [System.IO.Directory]::CreateDirectory($parent) | Out-Null
         }
-        New-Item -ItemType Junction -Path $LinkPath -Target $TargetPath | Out-Null
-        Log-Action 'Junction' $LinkPath 'Created' "Created junction -> $TargetPath"
+        try {
+            New-Item -ItemType Junction -Path $LinkPath -Target $TargetPath | Out-Null
+            Log-Action 'Junction' $LinkPath 'Created' "Created junction -> $TargetPath"
+        } catch {
+            Log-Action 'Junction' $LinkPath 'Aborted' ("Could not create junction: {0}" -f $_.Exception.Message)
+        }
     }
 }
 
@@ -272,8 +286,115 @@ function Assert-SingleRegion {
     }
 }
 
+function Update-InlinedRules {
+    param(
+        [string]$TargetFile,
+        [string]$HarnessRuleFile,
+        [string]$BackupDir,
+        [string]$Label
+    )
+
+    $agentsRuleFile = Join-Path $repoRoot 'rules\AGENTS.md'
+    if (-not (Test-Path -LiteralPath $agentsRuleFile) -or -not (Test-Path -LiteralPath $HarnessRuleFile)) {
+        Log-Action 'File' $TargetFile 'Aborted' "$Label rule source is missing"
+        return
+    }
+
+    $neutralContent = [System.IO.File]::ReadAllText($agentsRuleFile, [System.Text.Encoding]::UTF8).Trim()
+    $harnessContent = [System.IO.File]::ReadAllText($HarnessRuleFile, [System.Text.Encoding]::UTF8).Trim()
+    $ruleContent = ($neutralContent + "`r`n`r`n" + $harnessContent) -replace "`r?`n", "`r`n"
+
+    if (-not (Test-Path -LiteralPath $TargetFile)) {
+        if ($DryRun) {
+            Log-Action 'File' $TargetFile 'Created' "Would create $Label rules with an inlined marked region"
+        } else {
+            [System.IO.File]::WriteAllText($TargetFile, (Set-MarkedRegion -Text '' -Body $ruleContent), $utf8NoBom)
+            Log-Action 'File' $TargetFile 'Created' "Created $Label rules with an inlined marked region"
+        }
+        Assert-SingleRegion $TargetFile
+        return
+    }
+
+    $existingText = [System.IO.File]::ReadAllText($TargetFile, [System.Text.Encoding]::UTF8)
+    $updatedText = Set-MarkedRegion -Text $existingText -Body $ruleContent
+    if ($updatedText -eq $existingText) {
+        Log-Action 'File' $TargetFile 'Skipped' "$Label inlined rules are already up to date"
+    } elseif ($DryRun) {
+        Log-Action 'File' $TargetFile 'Updated' "Would regenerate $Label inlined rules"
+    } else {
+        Ensure-Directory $BackupDir
+        $stamp = (Get-Date).ToString('yyyyMMddHHmmss')
+        $backupFile = Join-Path $BackupDir ((Split-Path -Leaf $TargetFile) + ".$stamp.bak")
+        [System.IO.File]::WriteAllText($backupFile, $existingText, $utf8NoBom)
+        [System.IO.File]::WriteAllText($TargetFile, $updatedText, $utf8NoBom)
+        Log-Action 'File' $TargetFile 'Updated' "Regenerated $Label inlined rules (backup saved to $backupFile)"
+    }
+    Assert-SingleRegion $TargetFile
+}
+
 $userHome = [System.Environment]::GetFolderPath('UserProfile')
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+$codexHomeExplicit = -not [string]::IsNullOrWhiteSpace($env:CODEX_HOME)
+$codexHome = if ($codexHomeExplicit) { $env:CODEX_HOME } else { Join-Path $userHome '.codex' }
+$codexOnPath = Get-Command codex -ErrorAction SilentlyContinue
+$codexBundled = @()
+if ($env:LOCALAPPDATA) {
+    $codexBundled = @(Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA 'OpenAI\Codex\bin\*\codex.exe') -File -ErrorAction SilentlyContinue)
+}
+$codexInstalled = $codexHomeExplicit -or (Test-Path -LiteralPath $codexHome) -or $codexOnPath -or ($codexBundled.Count -gt 0)
+$codexSkillsDir = Join-Path $codexHome 'skills'
+$codexAgentsMd = Join-Path $codexHome 'AGENTS.md'
+$codexOverrideMd = Join-Path $codexHome 'AGENTS.override.md'
+$codexBackupDir = Join-Path $codexHome 'backups'
+$codexConfigFile = Join-Path $codexHome 'config.toml'
+
+if ($codexInstalled) {
+    Ensure-Directory $codexHome
+    Ensure-Directory $codexSkillsDir
+    Ensure-Directory $codexBackupDir
+
+    if (Test-Path -LiteralPath $codexOverrideMd) {
+        $overrideText = [System.IO.File]::ReadAllText($codexOverrideMd, [System.Text.Encoding]::UTF8)
+        if (-not [string]::IsNullOrWhiteSpace($overrideText)) {
+            Write-Host ("WARNING: {0} is non-empty and shadows the generated Codex global rules." -f $codexOverrideMd) -ForegroundColor Yellow
+        }
+    }
+
+    if ($plansOk) {
+        $configText = if (Test-Path -LiteralPath $codexConfigFile) {
+            [System.IO.File]::ReadAllText($codexConfigFile, [System.Text.Encoding]::UTF8)
+        } else {
+            ''
+        }
+        $commentFree = (($configText -split "`r?`n") | ForEach-Object { $_ -replace '#.*$', '' }) -join "`n"
+        $normalizedConfig = $commentFree.Replace('/', '\')
+        while ($normalizedConfig.Contains('\\')) { $normalizedConfig = $normalizedConfig.Replace('\\', '\') }
+        $normalizedPlans = $plansFound.Replace('/', '\').TrimEnd('\')
+        $plansConfigured = $normalizedConfig.IndexOf($normalizedPlans, [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+
+        if ($plansConfigured) {
+            Write-Host ("Codex writable roots already mention the plans repository: {0}" -f $plansFound) -ForegroundColor DarkGray
+        } else {
+            $hasSandboxWorkspaceWrite =
+                $commentFree -match '(?im)^\s*\[sandbox_workspace_write\]\s*$' -or
+                $commentFree -match '(?im)^\s*sandbox_workspace_write\.writable_roots\s*=' -or
+                $commentFree -match '(?im)^\s*sandbox_workspace_write\s*=\s*\{'
+            Write-Host ("WARNING: Codex config does not grant workspace-write access to {0}." -f $plansFound) -ForegroundColor Yellow
+            if ($hasSandboxWorkspaceWrite) {
+                Write-Host ("  Add '{0}' to the existing writable_roots array." -f $plansFound) -ForegroundColor Yellow
+            } else {
+                Write-Host ("  Append this table to {0}:" -f $codexConfigFile) -ForegroundColor Yellow
+                Write-Host "    [sandbox_workspace_write]" -ForegroundColor Yellow
+                Write-Host ("    writable_roots = ['{0}']" -f $plansFound) -ForegroundColor Yellow
+            }
+            Write-Host "  If access is profile-specific, merge it under [profiles.<name>.sandbox_workspace_write]." -ForegroundColor Yellow
+            Write-Host "  This script never modifies config.toml." -ForegroundColor Yellow
+        }
+    }
+} else {
+    Write-Host "Codex was not detected; skipping Codex bootstrap." -ForegroundColor DarkGray
+}
 
 # ---------------------------------------------------------------------------
 # 1. Claude Code Discovery
@@ -390,6 +511,9 @@ if (-not $needsUpdate) {
 # leaving a junction to a target that no longer exists.
 if ($Prune) {
     Remove-OrphanJunctions $claudeSkillsDir
+    if ($codexInstalled) {
+        Remove-OrphanJunctions $codexSkillsDir
+    }
 }
 
 # Link each source directory into the harnesses it is routed to.
@@ -401,6 +525,9 @@ foreach ($route in $Routes) {
     foreach ($skill in $skills) {
         if ($route.Claude) {
             Ensure-Junction -LinkPath (Join-Path $claudeSkillsDir $skill.Name) -TargetPath $skill.FullName
+        }
+        if ($codexInstalled -and $route.Codex) {
+            Ensure-Junction -LinkPath (Join-Path $codexSkillsDir $skill.Name) -TargetPath $skill.FullName
         }
     }
 }
@@ -466,51 +593,18 @@ if (-not (Test-Path -LiteralPath $claudeMdFile)) {
 }
 Assert-SingleRegion $claudeMdFile
 
-# Antigravity inlined rules: the neutral baseline followed by the Gemini-only
-# additions. This is a COPY, not a link, so it goes stale until setup runs again.
-$agentsRuleFile = Join-Path $repoRoot 'rules\AGENTS.md'
+# Inlined rules are copies, not links, so they go stale until setup runs again.
 $geminiRuleFile = Join-Path $repoRoot 'rules\GEMINI.md'
-
-if (Test-Path -LiteralPath $agentsRuleFile) {
-    $ruleContent = [System.IO.File]::ReadAllText($agentsRuleFile, [System.Text.Encoding]::UTF8).Trim()
-    if (Test-Path -LiteralPath $geminiRuleFile) {
-        $geminiContent = [System.IO.File]::ReadAllText($geminiRuleFile, [System.Text.Encoding]::UTF8).Trim()
-        $ruleContent = $ruleContent + "`r`n`r`n" + $geminiContent
-    }
-
-    if (-not (Test-Path -LiteralPath $geminiAgentsMd)) {
-        if ($DryRun) {
-            Log-Action 'File' $geminiAgentsMd 'Created' 'Would create ~/.gemini/config/AGENTS.md with inlined rules'
-        } else {
-            [System.IO.File]::WriteAllText($geminiAgentsMd, (Set-MarkedRegion -Text '' -Body $ruleContent), $utf8NoBom)
-            Log-Action 'File' $geminiAgentsMd 'Created' 'Created ~/.gemini/config/AGENTS.md with inlined rules'
-        }
-    } else {
-        $existingAgentsText = [System.IO.File]::ReadAllText($geminiAgentsMd, [System.Text.Encoding]::UTF8)
-        $updatedAgentsText = Set-MarkedRegion -Text $existingAgentsText -Body $ruleContent
-
-        if ($updatedAgentsText -eq $existingAgentsText) {
-            Log-Action 'File' $geminiAgentsMd 'Skipped' 'Inlined rules are already up to date'
-        } else {
-            if ($DryRun) {
-                Log-Action 'File' $geminiAgentsMd 'Updated' 'Would regenerate inlined rules in marked region'
-            } else {
-                Ensure-Directory $geminiBackupDir
-                $stamp = (Get-Date).ToString('yyyyMMddHHmmss')
-                $backupFile = Join-Path $geminiBackupDir "AGENTS.md.$stamp.bak"
-                [System.IO.File]::WriteAllText($backupFile, $existingAgentsText, $utf8NoBom)
-                [System.IO.File]::WriteAllText($geminiAgentsMd, $updatedAgentsText, $utf8NoBom)
-                Log-Action 'File' $geminiAgentsMd 'Updated' "Regenerated inlined rules (backup saved to $backupFile)"
-            }
-        }
-    }
+$codexRuleFile = Join-Path $repoRoot 'rules\CODEX.md'
+Update-InlinedRules -TargetFile $geminiAgentsMd -HarnessRuleFile $geminiRuleFile -BackupDir $geminiBackupDir -Label 'Antigravity'
+if ($codexInstalled) {
+    Update-InlinedRules -TargetFile $codexAgentsMd -HarnessRuleFile $codexRuleFile -BackupDir $codexBackupDir -Label 'Codex'
 }
-Assert-SingleRegion $geminiAgentsMd
 
 Write-Host "`n=================================================="
 Write-Host " Setup Summary"
 Write-Host "=================================================="
 $script:actions | Format-Table -AutoSize
 
-Write-Host "Reminder: rules/AGENTS.md and rules/GEMINI.md reach Antigravity as an" -ForegroundColor DarkGray
-Write-Host "INLINED COPY. Re-run this script after editing either file." -ForegroundColor DarkGray
+Write-Host "Reminder: Antigravity and Codex receive rules/AGENTS.md plus their" -ForegroundColor DarkGray
+Write-Host "harness rule as INLINED COPIES. Re-run this script after editing them." -ForegroundColor DarkGray

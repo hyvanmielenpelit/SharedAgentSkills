@@ -17,7 +17,7 @@ except `.plans/`, the fallback when the `plans` repository is unreachable.
 
 ## Globally Installed Skills
 
-Shared, both harnesses:
+Shared, all harnesses:
 
 - `agent-implementation-planning` -- the planning lifecycle, plan template, the plans
   repository layout and versioning, the commit protocol, follow-up rounds, isolation.
@@ -36,8 +36,8 @@ Antigravity only:
 - `gemini-skill-inclusion` -- pattern for registering and including skills in Antigravity via
   skills.json, workspace discovery, and setup synchronization.
 
-Skills whose names begin with `claude-` exist but are **deliberately not installed here**;
-they describe mechanics this application does not have.
+Skills whose names begin with `claude-` or `codex-` exist but are **deliberately not
+installed here**; they describe mechanics this application does not have.
 
 A project's own skills override these wherever they differ.
 

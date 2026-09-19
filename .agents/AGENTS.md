@@ -4,12 +4,14 @@
 > **This file governs edits to the SharedAgentSkills repository itself.**
 > It is **NEVER** linked, junctioned, copied, or inlined into any harness
 > configuration. `setup.ps1` reads only `skills/`, `skills-claude/`,
-> `skills-gemini/`, and `rules/`.
+> `skills-gemini/`, `skills-codex/`, and `rules/`.
 >
-> - Content for every project, both harnesses -> `skills/` or `rules/AGENTS.md`.
-> - Content for one harness -> `skills-claude/` / `skills-gemini/`, or
->   `rules/CLAUDE.md` / `rules/GEMINI.md`.
+> - Content for every project, all harnesses -> `skills/` or `rules/AGENTS.md`.
+> - Content for one harness -> `skills-claude/` / `skills-gemini/` /
+>   `skills-codex/`, or `rules/CLAUDE.md` / `rules/GEMINI.md` /
+>   `rules/CODEX.md`.
 > - Content about maintaining *this* repository -> here.
+> - The root `AGENTS.md` adapter is also repository-local and is never installed.
 > - **Never** move a file from a linked directory into `.agents/` — that
 >   silently uninstalls it from that harness on every machine.
 > - **Never** add a repository-maintenance note to a linked directory — it
@@ -18,15 +20,16 @@
 ## What This Repository Is
 
 A small repository of shared rules and skills for AI coding agents, distributed
-to two harnesses on Windows by NTFS junction, direct path configuration in skills.json, and by inlined copy. It is not a
-platform. Keep additions proportionate to the content they govern.
+to three harnesses on Windows by NTFS junction, direct path configuration in
+skills.json, and inlined copy. It is not a platform. Keep additions
+proportionate to the content they govern.
 
 ## The Placement Matrix
 
-|  | Both harnesses | Claude Code only | Antigravity / Gemini only |
-|---|---|---|---|
-| **Always-on rules** | `rules/AGENTS.md` | `rules/CLAUDE.md` | `rules/GEMINI.md` |
-| **Triggered skills** | `skills/` | `skills-claude/` | `skills-gemini/` |
+|  | All harnesses | Claude Code only | Antigravity / Gemini only | Codex only |
+|---|---|---|---|---|
+| **Always-on rules** | `rules/AGENTS.md` | `rules/CLAUDE.md` | `rules/GEMINI.md` | `rules/CODEX.md` |
+| **Triggered skills** | `skills/` | `skills-claude/` | `skills-gemini/` | `skills-codex/` |
 
 Two tests decide the cell:
 
@@ -35,12 +38,13 @@ Two tests decide the cell:
   it belongs in that repository, not here.
 - **Harness** — does it name a tool, path, mode, or agent type that only one
   harness has (`ExitPlanMode`, `~/.claude/plans/`, `Explore` agents,
-  `<appDataDir>/brain/`, `write_to_file`, `skills.json`)? Then it is
+  `<appDataDir>/brain/`, `write_to_file`, `skills.json`, `$CODEX_HOME`,
+  or `<proposed_plan>`)? Then it is
   harness-specific.
 
 **The ten-line inline exception.** A harness note of ten lines or fewer inside an
 otherwise-shared skill stays there rather than fragmenting into its own file.
-`agent-powershell-guidelines` section 10 is the model case. Promote to a
+`agent-powershell-guidelines` section 11 is the model case. Promote to a
 harness-only skill only when the content is substantial enough to stand alone
 **and** would mislead under the other harness.
 
@@ -76,25 +80,25 @@ Three changes do not take effect until `setup.ps1` runs again:
 
 | Change | Effect without re-running |
 |--------|---------------------------|
-| Edit `rules/AGENTS.md` or `rules/GEMINI.md` | Antigravity keeps reading the **old** text — it receives an inlined copy, not a link |
-| Add, rename, or move a skill directory | No configuration exists yet, so neither harness can see it |
-| Rename or delete a skill | The old configuration survives; run `setup.ps1 -Prune` |
+| Edit `rules/AGENTS.md`, `rules/GEMINI.md`, or `rules/CODEX.md` | Antigravity and Codex keep reading their **old** inlined copies |
+| Add, rename, or move a skill directory | Claude and Codex need new per-skill links; Antigravity's source-directory entries need no change, though a fresh session may be required |
+| Rename or delete a skill | Old Claude and Codex links survive; run `setup.ps1 -Prune` |
 
-Editing a file **inside** an already-configured skill is live for both harnesses
-and needs nothing. Claude Code reads `rules/` through a live junction, so rules
-edits reach Claude immediately and Antigravity only after a re-run. That
-asymmetry is the most common source of "why is Gemini ignoring my rule".
+Editing a file **inside** an already-configured skill is live for all harnesses
+and needs nothing. Claude Code reads `rules/` through a live junction, while
+Antigravity and Codex receive marked inlined copies. Rule edits therefore reach
+Claude immediately but require a setup re-run for Antigravity and Codex.
 
 ## Adding or Changing a Skill
 
 1. Decide the cell from the matrix above.
 2. Create `<dir>/<kebab-case-name>/SKILL.md` with `name:` matching the directory
    and a `description:` of 40-1024 characters written for **triggering** — it is
-   what both harnesses index to decide whether to load the skill.
-3. Prefix by scope: `agent-` for shared, `claude-` / `gemini-` for
+   what all harnesses index to decide whether to load the skill.
+3. Prefix by scope: `agent-` for shared, `claude-` / `gemini-` / `codex-` for
    harness-specific. Un-prefixed generic names are reserved for shared skills.
    Project repositories use the prefixes below.
-4. Run the validator, then `.\setup.ps1` (a new directory needs a new junction).
+4. Run the validator, then `.\setup.ps1` (new Claude or Codex skills need new junctions).
 
 ## Project Repository Skill Prefixes
 
