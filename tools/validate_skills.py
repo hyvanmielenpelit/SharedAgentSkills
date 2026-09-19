@@ -17,6 +17,8 @@ except ImportError:
 
 NAME_REGEX = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 LINK_REGEX = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+# Fenced blocks and inline code spans hold examples, not links to resolve.
+CODE_REGEX = re.compile(r"^ {0,3}(```|~~~).*?^ {0,3}\1[^\n]*$|`[^`\n]+`", re.MULTILINE | re.DOTALL)
 
 
 def check_no_bom(path: Path) -> bool:
@@ -42,7 +44,7 @@ def check_ascii_only(path: Path) -> bool:
 def validate_markdown_links(file_path: Path, content: str) -> bool:
     success = True
     base_dir = file_path.parent
-    for match in LINK_REGEX.finditer(content):
+    for match in LINK_REGEX.finditer(CODE_REGEX.sub("", content)):
         url = match.group(2).strip()
         # Ignore external URLs, anchors, mailto, etc.
         if url.startswith(("http://", "https://", "mailto:", "#")):
