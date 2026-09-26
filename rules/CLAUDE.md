@@ -12,6 +12,13 @@ reports in its own environment**. The baseline rule still binds: never write tem
 files anywhere inside a repository. Plans go to the shared `plans` repository; `.plans/`
 is only the fallback when it cannot be reached.
 
+## Subagent Models
+
+- **Never spawn a Sonnet subagent.** Only the Opus and Fable families are allowed, for
+  every tier and agent type.
+- **Pass the model on every spawn.** An agent type or a default setting may otherwise
+  pick a disallowed one; `inherit` is safe only if the orchestrator's model is allowed.
+
 ## Globally Installed Skills
 
 Shared, all harnesses:

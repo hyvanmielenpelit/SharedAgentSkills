@@ -29,12 +29,20 @@ the Codex equivalents are in `codex-conventions`.
 | Tier | Resolve to |
 |------|-----------|
 | `deep` | A model that can hold a whole subsystem in view and reason about consequences the instructions did not enumerate. In practice this session's top reasoning tier (currently the Opus family). |
-| `standard` | A capable mid-tier: strong enough to follow an approved plan without supervision, fast enough for routine work. |
-| `mechanical` | The cheapest tier available to the session. |
-| `inherit` | **Omit the model override entirely** so the subagent matches the orchestrator. |
+| `standard` | A capable model strong enough to follow an approved plan without supervision, fast enough for routine work. |
+| `mechanical` | The cheapest allowed model the session offers. |
+| `inherit` | The orchestrator's own model, **passed explicitly** -- and only when that model is allowed. |
 
 The parenthetical above is a hint, not the instruction. The instruction is the property.
 If the roster has changed, the property still selects correctly and the hint does not.
+
+> [!IMPORTANT]
+> **Every tier resolves within the allowed families.** `rules/CLAUDE.md` names which
+> model families a subagent may use and which it must never use; a tier's property never
+> overrides that. When the allowed families offer no mid-tier or cheap model, `standard`
+> and `mechanical` resolve to the cheapest allowed one. **Set the model on every spawn**,
+> `Explore` and `Plan` included: omitting it lets an agent type's own definition or a
+> configured default choose, and that choice may be a disallowed model.
 
 ---
 
