@@ -14,7 +14,7 @@ description: >-
 Development and tool execution in Windows repositories take place on **Windows**. Terminal tool commands execute directly inside **PowerShell**. These guidelines prevent syntax errors, escaping failures, execution policy blocks, encoding/line-ending corruption, process hangs, and state pollution.
 
 > [!NOTE]
-> Every behaviour asserted in this document was measured on **Windows PowerShell 5.1.26100.9168**
+> Every behavior asserted in this document was measured on **Windows PowerShell 5.1.26100.9168**
 > (Desktop edition, Windows 11 Pro 26200) on 2026-08-25 — not recalled from documentation. Where
 > a rule depends on the host, the document says how to check rather than what to assume.
 > Re-verify after a major Windows or PowerShell upgrade.

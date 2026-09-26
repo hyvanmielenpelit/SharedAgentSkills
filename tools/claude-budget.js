@@ -698,7 +698,7 @@ const MONTHS = {
 };
 
 /* Anthropic occasionally raises a limit for a period and the client caches a notice for
-   it. Reading that notice means a promotional capacity can be recognised as temporary
+   it. Reading that notice means a promotional capacity can be recognized as temporary
    without anyone having to spot the banner and say so.
 
    This is an undocumented internal cache: the key may be renamed or restructured at any

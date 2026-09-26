@@ -163,7 +163,7 @@ its task, and the shared store now puts other repositories' plans one directory 
 A subagent **writes** code -- including test code, build files, and generator inputs. It
 never **runs** the toolchain over them.
 
-Why this is flat rather than a matter of judgement:
+Why this is flat rather than a matter of judgment:
 
 - **Parallel builds collide.** Two agents invoking the same toolchain share output
   directories, lock files, caches, and package restores. The failures that produces look

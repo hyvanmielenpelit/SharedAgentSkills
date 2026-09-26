@@ -40,6 +40,7 @@ Details: `agent-powershell-guidelines`.
 
 ## Important Warnings
 
+- **Use US English spelling** in all English text: behavior, license, normalize.
 - **Preserve existing comments and documentation** unless explicitly asked to change them.
 - **Comments describe the code's current state**, briefly -- never the change or its
   reason, which belong in the commit description.

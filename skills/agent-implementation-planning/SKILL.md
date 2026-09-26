@@ -146,7 +146,7 @@ has no idea a change ever happened. It is not a record of the edit that produced
   Commit Description. That is the artifact whose job is to explain *why*; a source file's
   job is to say what it currently does.
 - **Be brief.** One line where one line does. Do not restate the code in prose, do not
-  summarize a method above itself, and do not explain language or framework behaviour any
+  summarize a method above itself, and do not explain language or framework behavior any
   reader of this codebase already knows.
 - **Match the file you are editing.** Comment density, tone, and format follow the
   surrounding code, not your own defaults. A sparsely commented file stays sparse.
@@ -163,7 +163,7 @@ has no idea a change ever happened. It is not a record of the edit that produced
 // Lookup runs once per entity per frame; must stay O(1). Misses throw.
 ```
 
-This is not a licence to strip existing commentary. The baseline rule that existing
+This is not a license to strip existing commentary. The baseline rule that existing
 comments and documentation are preserved unless the user asks otherwise still applies:
 verbosity is fixed in what you write, never by deleting what someone else wrote.
 
@@ -452,7 +452,7 @@ Documents in the plans repository are written **CRLF**, as in every repository h
 > [!IMPORTANT]
 > **No secrets.** The plans repository is private but **shared**, and agents push to it
 > without waiting for a human. No credentials, API keys, connection strings, tokens,
-> production hostnames, or personal data may appear in any document. This is a behavioural
+> production hostnames, or personal data may appear in any document. This is a behavioral
 > change from the old `.plans/`, which never left the machine, and it is the most likely
 > way this arrangement causes harm. The rule applies to fallback documents too: they are
 > written locally, but they are written to be moved.

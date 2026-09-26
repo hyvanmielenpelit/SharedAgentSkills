@@ -36,7 +36,7 @@ it is a competing procedure for the same task, not just a different tool name.
 | C5 | Resolving a tier to a concrete model | `claude-code-conventions`, **as a runtime rule, not a table** | See "Why there is no roster" below |
 | C6 | Agent types `Explore` / `Plan` / `general-purpose` and which may edit files | `claude-code-conventions` | Claude Code's own agent taxonomy |
 | C7 | The `.claude/skills/` pointer-stub contract; the stub `description` is what Claude Code indexes for **triggering**; regenerate, never hand-edit | `claude-code-conventions` | Describes a Claude Code mechanism |
-| C8 | Native file tools `Write` / `Edit` / `Read` / `Grep` / `Glob`; `Write` emits LF and needs normalising in a CRLF tree | `agent-powershell-guidelines` section 11 | **Inlined** — 4 lines, shell/IO adjacent |
+| C8 | Native file tools `Write` / `Edit` / `Read` / `Grep` / `Glob`; `Write` emits LF and needs normalizing in a CRLF tree | `agent-powershell-guidelines` section 11 | **Inlined** — 4 lines, shell/IO adjacent |
 | C9 | Both PowerShell and a Git Bash `Bash` tool exist and are not interchangeable; default to PowerShell | `agent-powershell-guidelines` section 11 | **Inlined** |
 | C10 | Claude Code pre-sets `$PSDefaultParameterValues['Out-File:Encoding']`; the session runs `Bypass`; only cwd persists | `agent-powershell-guidelines` section 11 | **Inlined** — one line each |
 | C11 | Claude Code has no `brain/` directory; use the session scratchpad it reports | `rules/CLAUDE.md` | Always-relevant fact, not a procedure |
@@ -86,7 +86,7 @@ it is a competing procedure for the same task, not just a different tool name.
 | Five-phase lifecycle, plan template, plans research isolation, version harmonization, the commit protocol | Method, not mechanism |
 | Tier **names** and selection criteria | Roles, not model names — each harness skill supplies the resolution rule |
 | File-level exclusivity, protecting uncommitted changes, build-boundary sequencing | Coordination rules |
-| Everything in `agent-powershell-guidelines` sections 1-10 | Windows and PowerShell 5.1 behaviour shared by all three harnesses |
+| Everything in `agent-powershell-guidelines` sections 1-10 | Windows and PowerShell 5.1 behavior shared by all three harnesses |
 | Every document reported as a clickable link that opens in the application's own viewer, never a bare path; an **absolute** href for anything in the plans repository, never a relative one; link the whole round; re-link on every `_v<N>` | The requirement is universal — a relative href resolves against a current directory no harness guarantees, and the plans repository is outside the working repository under all three. Only the link *mechanism* differs, and C13/G9/X11 supply it |
 
 ---
