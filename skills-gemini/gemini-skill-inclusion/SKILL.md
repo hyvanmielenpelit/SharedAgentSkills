@@ -16,7 +16,7 @@ This skill explains how Antigravity manages and discovers AI skills via `skills.
 Antigravity resolves skills across three different scopes:
 
 1. **Workspace Level**: Skills specific to the current project repository. Found at `.agents/skills/` or declared via `.agents/skills.json`.
-2. **Global Level**: General skills available across all projects. Configured via `~/.gemini/config/skills.json` and typically placed in `~/.gemini/config/skills/`.
+2. **Global Level**: General skills available across all projects. Registered by absolute path in the `entries` of `~/.gemini/config/skills.json`. In addition, every real skill directory under `~/.gemini/config/skills/` loads without an entry.
 3. **Plugin Level**: Skills provided by installed plugins (e.g. `plugins/<name>/plugin.json` and `plugins/<name>/skills/`).
 
 ## Why `skills.json` Is Required Globally
@@ -24,6 +24,8 @@ Antigravity resolves skills across three different scopes:
 Unlike Claude Code, which automatically discovers and follows directory junctions placed under `~/.claude/skills/`, **Antigravity uses a progressive skill discovery system that requires explicit configuration for loose global skills.** 
 
 For Antigravity to recognize global skills (including those created by directory junctions), they must be declared in the `entries` array of the `~/.gemini/config/skills.json` file. If this configuration file is missing, the agent will not expose those global skills in the active session's context window.
+
+The one exception is `~/.gemini/config/skills/` itself: a real skill directory placed there loads even when no `entries` element names it. That directory must therefore hold nothing that is not meant to load. `setup.ps1` no longer writes there, so anything found in it is a leftover from an older setup. Whether a junction there loads the same way has not been tested.
 
 ## The `skills.json` Schema
 

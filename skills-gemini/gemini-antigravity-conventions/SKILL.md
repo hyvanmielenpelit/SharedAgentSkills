@@ -136,7 +136,7 @@ at the Execution Target line as the way to record the intent.
 
 ## Skill Discovery
 
-- **Global skills require `skills.json`**. Antigravity does not use directory junctions for skills. They must be explicitly declared in the `entries` array of `~/.gemini/config/skills.json` using absolute paths to the source directories.
+- **Global skills require `skills.json`**. Antigravity does not use directory junctions for skills. They must be explicitly declared in the `entries` array of `~/.gemini/config/skills.json` using absolute paths to the source directories. The exception: a real skill directory under `~/.gemini/config/skills/` loads without an entry, so keep that directory free of anything not meant to load.
 - Edits to a file inside an existing skill configured via `skills.json` are live immediately.
 - **Project-level skills** are discovered automatically if placed in `.agents/skills/`, or can be explicitly declared via a workspace-relative `.agents/skills.json`.
 - Skills whose names begin with `claude-` or `codex-` are deliberately **not** installed here. They describe mechanics this application does not have.
