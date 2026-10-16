@@ -27,6 +27,8 @@ Shared, all harnesses:
   endings, non-interactive execution.
 - `agent-secret-hygiene` -- what makes a literal secret-shaped, why push protection
   rejects the whole push, and how to write a token fixture that does not trip it.
+- `agent-issue-drafting` -- drafting a GitHub issue: the form's templates, a verified
+  minimal repro, duplicate search, privacy, and paste-ready text with no hard line wraps.
 
 Antigravity only:
 

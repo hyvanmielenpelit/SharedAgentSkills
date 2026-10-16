@@ -29,7 +29,7 @@ which prevents wasted effort, uncoordinated subagents, and unintended breaking c
 
 **Related skills**: `agent-subagent-guidelines` for the mandatory Subagent Use section.
 Your harness's own skill for how it reconciles its plan mode or artifact directory with
-the plans repository.
+the plans repository. `agent-issue-drafting` for the content and format of an issue draft.
 
 ---
 

@@ -28,6 +28,7 @@ These rules extend the neutral global rules for Codex sessions.
 - `agent-subagent-guidelines` defines delegation tiers and orchestration boundaries.
 - `agent-powershell-guidelines` defines Windows command, encoding, and exit-code rules.
 - `agent-secret-hygiene` prevents secret-shaped literals from entering artifacts.
+- `agent-issue-drafting` defines issue drafts: forms, verified repros, and unwrapped text.
 - `codex-conventions` defines Codex plan modes, sandboxing, discovery, linking, and spawn
   behavior. Skills prefixed `claude-` or `gemini-` are not installed into Codex.
 
