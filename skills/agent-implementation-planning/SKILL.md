@@ -229,7 +229,7 @@ Everything here, except steps only a person can run, is run by the orchestrator,
 - Test / build / linter commands.
 ### Manual
 - Steps to verify functional correctness.
-- Steps only a person can run live in `developer_runbook_v<N>.md`; name it and its IDs here.
+- Steps only a person can run live in `developer_runbook_v<N>.md`, as few as will do; name it and its IDs here.
 ```
 
 ### The Execution Target line

@@ -4,8 +4,8 @@ description: >-
   How an AI agent hands a person everything its finished work still leaves for them: manual
   tests, device checks, builds only a person can run, issues to file, other developers to brief,
   and checks that can only happen later. Covers the Developer Runbook document, its At a Glance
-  table, step cards and test sessions, the fixed Runbook status table in the walkthrough, its
-  states, recording a person's result, and listing every open step across tasks with
+  table, how few checks to ask for, step cards and test sessions, the fixed Runbook status table in the
+  walkthrough, its states, recording a person's result, and listing every open step across tasks with
   Get-OpenRunbookSteps.ps1. Read when writing a plan's manual verification, before reporting work
   as finished while a person still has something to do, when the user asks which tests are pending
   or what to test next, and when the user reports a test result.
@@ -60,6 +60,42 @@ Write one whenever the work leaves a person **anything beyond the commit**.
 
 ---
 
+## Keep the Checks Few
+
+A person's time is the most expensive test there is, and a long list does not get run. **Ask for the
+fewest checks that could show the change is wrong.** A check earns its place by finding a failure
+nothing else would find.
+
+| The change | Most checks, in total |
+|------------|-----------------------|
+| Trivial: a small fix, one behavior, a wording or layout tweak | **One**, or none if a build or an automated test proves it |
+| Ordinary: one feature, or a fix with more than one path | **Three** |
+| Large: a new feature, or a change across subsystems | **Five**, and the runbook says in one line why it needs more than three |
+
+These are ceilings, not targets. A check run on two devices is two checks. Going over takes the user's
+request or a rule in the project's skills.
+
+Keep a check for:
+
+- **The behavior the change is for**, in its main path.
+- **A specific risk you can name**: how this change could break that thing, and what failure would cost.
+  Lost data and crashes earn a check; a cosmetic edge case rarely does.
+
+Leave a check out when:
+
+- A build, an automated test, or the agent itself can establish it. Write the automated test instead,
+  where that is practical.
+- It tests something the change did not touch, and you cannot name how the change could break it.
+- It repeats shared code on another device, with nothing there that differs.
+- It tests the framework or the operating system rather than this change.
+- Another check already passes through it. Merge checks that fit in one scenario.
+
+If the list is still over the limit, rank it by what a failure would cost and cut from the bottom. What
+you left out is one line in the walkthrough saying what was not tested, never a row. Reporting that
+plainly is what makes a short list honest.
+
+---
+
 ## When Each Document Is Written
 
 | Moment | Document |
@@ -90,7 +126,7 @@ What this changed, in two lines, and what the steps below establish.
 |----|------|-------|------|-------|
 | S1 | DEPLOY | Test device | Put the build on the device | - |
 | M1 | TEST | Test device | The new button opens the menu | S1 |
-| M2 | TEST | Test device | The old shortcut still works | S1 |
+| M2 | TEST | Test device | The menu stays closed during a save | S1 |
 | S2 | COMMIT | Git | Commit the change | - |
 
 ## Steps
@@ -149,7 +185,7 @@ per check.
 ```
 
 Every `Expect` is observable. "It works" is not an expectation; "the menu opens with Save first" is.
-Include what should still work next to the change.
+Check something unchanged only when you can name how this change could break it.
 
 ---
 
@@ -165,7 +201,7 @@ the round. It has this section **exactly**, as one unbroken table, because a too
 |----|------|-------|------|-------|------|------|
 | S1 | DEPLOY | Test device | Put the build on the device | done | 2026-11-01 | <the version it put there> |
 | M1 | TEST | Test device | The new button opens the menu | failed | 2026-11-02 | Opens the old menu |
-| M2 | TEST | Test device | The old shortcut still works | remaining | | |
+| M2 | TEST | Test device | The menu stays closed during a save | remaining | | |
 | S2 | COMMIT | Git | Commit the change | remaining | | |
 ```
 
@@ -252,6 +288,8 @@ never "verified", until the person's results say so.
       message, another document or a private memory.
 - [ ] Nothing in the list is something the agent could have done, unless it is listed so that a
       failure has a home.
+- [ ] The number of checks is within the limit for the size of the change, and removing any one of them
+      would leave a real risk unseen.
 - [ ] Every step has `Who`, `Needs`, `Where`, `Do`, `Expect` and `If not`; every session has `Setup`.
 - [ ] Every `Expect` is observable.
 - [ ] Every path is absolute and exists; every label was checked against its source.
