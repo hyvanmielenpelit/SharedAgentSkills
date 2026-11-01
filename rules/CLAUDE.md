@@ -33,6 +33,8 @@ Shared, all harnesses:
   rejects the whole push, and how to write a token fixture that does not trip it.
 - `agent-issue-drafting` -- drafting a GitHub issue: the form's templates, a verified
   minimal repro, duplicate search, privacy, and paste-ready text with no hard line wraps.
+- `agent-developer-runbook` -- what finished work still leaves for a person: the runbook,
+  its status table, recording results, and listing open steps across tasks.
 
 Claude Code only:
 
