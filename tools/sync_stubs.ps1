@@ -117,7 +117,7 @@ same directory.
 "@
 
     $eol = Get-Eol $canonical
-    $content = ($body.Replace("`r`n", "`n")).Replace("`n", $eol)
+    $content = ($body.Replace("`r`n", "`n")).Replace("`n", $eol) + $eol
 
     $existing = $null
     if (Test-Path -LiteralPath $stubFile) {
