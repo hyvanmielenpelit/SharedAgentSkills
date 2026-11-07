@@ -30,6 +30,7 @@ which prevents wasted effort, uncoordinated subagents, and unintended breaking c
 **Related skills**: `agent-subagent-guidelines` for the mandatory Subagent Use section.
 Your harness's own skill for how it reconciles its plan mode or artifact directory with
 the plans repository. `agent-issue-drafting` for the content and format of an issue draft.
+`agent-developer-runbook` for what finished work still leaves for a person.
 
 ---
 
@@ -107,10 +108,14 @@ graph TD
 ### Phase 5 -- Verify
 
 - **The orchestrator** runs the tests, builds, and linters and completes the manual
-  checks -- never a subagent, and only after every subagent has returned. A result
-  produced by a subagent, on a tree that has since changed, is not verification.
+  checks it can run itself -- never a subagent, and only after every subagent has
+  returned. A result produced by a subagent, on a tree that has since changed, is not
+  verification.
 - Create `walkthrough.md` summarizing what changed, what was tested, and the results,
   and carrying the commit description for the work.
+- **Whatever only a person can do goes in a developer runbook.** The walkthrough, with the runbook's
+  status table, is written when the agent's own work ends, before the first step is handed over. See
+  `agent-developer-runbook`.
 - **If quota was tracked, report what the plan consumed** against it, alongside the
   verification results. See Quota Budgeting.
 
@@ -219,11 +224,12 @@ Mark each file [NEW], [MODIFY], or [DELETE].
 What could break, edge cases, and mitigation strategies.
 
 ## Verification Plan                             <- mandatory
-Everything here is run by the orchestrator, never by a subagent.
+Everything here, except steps only a person can run, is run by the orchestrator, never by a subagent.
 ### Automated
 - Test / build / linter commands.
 ### Manual
 - Steps to verify functional correctness.
+- Steps only a person can run live in `developer_runbook_v<N>.md`, as few as will do; name it and its IDs here.
 ```
 
 ### The Execution Target line
@@ -384,9 +390,11 @@ move to the next rule if it fails.
           bug_analysis_v<N>.md              <- example: an analysis document
           task.md                           <- single file, from the approved plan
           walkthrough.md                    <- single file, post-completion summary
+          developer_runbook_v<N>.md         <- what a person still has to do
           implementation_review_A_v<N>.md   <- follow-up round A
           task_A.md                         <- follow-up A checklist
           walkthrough_A.md                  <- follow-up A walkthrough
+          developer_runbook_A_v<N>.md       <- follow-up round A
 ```
 
 ### Choosing the scope
@@ -549,6 +557,9 @@ specific to this store:
 > nothing is waiting to be reviewed between writing and committing. Holding the commit back
 > would only delay the moment another developer can see the plan.
 
+The exception is a walkthrough's `## Runbook status` table, which keeps changing after its round as
+people report results. Each report is committed when it is recorded, so nothing waits there either.
+
 ### When
 
 **Once per round, at the end** -- after **every** document of that round exists. Never file
@@ -559,6 +570,7 @@ by file.
 | Planning | The whole plan set is written (main plan, sub-plans, harmonized members), before requesting approval |
 | Revision | The whole set has been bumped to `_v<N>` |
 | Completion | `task.md` is final **and** `walkthrough.md` is written |
+| Result | A person's result is recorded in a walkthrough's Runbook status table: one commit per report |
 
 Do **not** commit after each checkbox in `task.md`. It is committed once, with the
 walkthrough, at the end of the round.
@@ -575,7 +587,8 @@ git -C <plans-root> push
 - **Stage explicit paths. Never `git add .` or `git add -A`.** The clone is shared: a
   blanket add publishes another developer's or another session's unfinished draft alongside
   yours.
-- **Commit only files you wrote in this session.**
+- **Commit only files you wrote in this session**, or a walkthrough whose status rows you just edited
+  to record a person's result.
 - **Never rewrite history** -- no `--amend`, no `--force`, no editing a pushed version.
   Published versions are the revision history.
 - **A rejected push and a failed push are different failures.** Do not treat them alike:
@@ -949,6 +962,10 @@ implemented, what changed (with file references), what was tested, validation re
 and remaining follow-up items. Every result recorded there is one the orchestrator ran
 itself.
 
+Where a developer runbook exists, the walkthrough also has its `## Runbook status` table, in the
+format `agent-developer-runbook` fixes. Those rows are the exception to the sentence above: they
+record what the person reports.
+
 Report it the same way as the plan: a clickable link, plus the path -- see Reporting a
 Document to the User. The walkthrough is the document the user is most likely to actually
 open, and it arrives at the moment the session looks finished.
@@ -1045,6 +1062,7 @@ and **stale analyses** whose assumptions no longer hold.
 | **Phase 4 -- Execution** | Read **only** the approved plan for the current task. |
 | **Follow-up rounds** | You may read the walkthrough and plan from the **same task directory**. |
 | **Picking up another agent's work** | Read the **latest `_v<N>`** for the specific task you are continuing. |
+| **Runbook steps** | Allowed in any phase, beside the rows above: run `Get-OpenRunbookSteps.ps1`, which reports status rather than plan content, and read a runbook or walkthrough it names, or edit its status rows, when recording a result, handing over its steps, or collecting older steps in a sweep the user approved. None of it is research input. |
 
 ### Rules for subagents
 
