@@ -184,9 +184,16 @@ public repository.
   mid-sentence once pasted. Write **one line per paragraph** and one per list item.
   Repository `.md` files behave differently: GitHub joins their lines, so wrapping there,
   as in this file, is fine.
-- **Code, logs, and tables** go in fenced blocks, exactly as they are. Collapse long code in
-  `<details><summary>...</summary>`, with a blank line before the opening fence. The
-  exception is a field with `render:`, which GitHub fences itself -- see Read the Form.
+- **Code that fills a line or more, logs, and tables** go in fenced blocks, exactly as they
+  are. Collapse long code in `<details><summary>...</summary>`, with a blank line before the
+  opening fence. The exception is a field with `render:`, which GitHub fences itself -- see
+  Read the Form.
+- **Inline code sparingly.** Backticks mark text a reader must copy or match exactly: a
+  property and its value, a path, a command, an exact error string, or an identifier that
+  would otherwise read as an ordinary word. Names readers already know, such as frameworks,
+  platforms, versions, and type names mentioned in passing, stay plain text with their
+  correct casing, and an identifier that recurs gets backticks the first time at most. A
+  paragraph broken up by code spans is harder to read and looks generated.
 - **Clean logs before pasting:** strip local paths, user names, and machine names; trim
   framework noise with `[...]` and say that you did.
 - **Separate the two audiences in the draft file.** Notes for the filer, such as steps
@@ -243,8 +250,8 @@ upstream repository, under the usual tier rules.
   agent; "Actual" is real output.
 - When a repro repository is used: the user created it, a root `.gitignore` is verified,
   and the repro was run from its published location.
-- Paste-ready text has one line per paragraph; code and logs are fenced and cleaned, except
-  in fields GitHub fences itself.
+- Paste-ready text has one line per paragraph; inline code only for text a reader copies or
+  matches; code and logs are fenced and cleaned, except in fields GitHub fences itself.
 - Attachments the form asks for are listed in the filer notes.
 - No personal data, secrets, or internal links.
 - The draft is stored as a versioned document, and filing waits for the user.
