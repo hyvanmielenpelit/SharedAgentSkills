@@ -124,7 +124,7 @@ same directory.
         $existing = [System.IO.File]::ReadAllText($stubFile, [System.Text.Encoding]::UTF8)
     }
 
-    if ($existing -eq $content) {
+    if ($existing -ceq $content) {
         $upToDate++
         continue
     }
